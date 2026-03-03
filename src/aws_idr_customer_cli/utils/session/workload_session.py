@@ -122,70 +122,35 @@ class WorkloadSession(InteractiveSession):
             review_and_update_workload(self.ui, self.submission, self._save_progress),
         )
 
-    @session_step("Select Discovery Method", order=3)
-    def select_discovery_method(self) -> Dict[str, str]:
-        """Select resource discovery method."""
-        self.ui.display_header("Resource Discovery Method")
-
-        methods = [
-            "Tag-based discovery",
-            "← Back to workload info",
-        ]
-
-        choice = self.ui.select_option(
-            methods, "How would you like to discover resources?"
-        )
-
-        # Back
-        if choice == 1:
-            return {ACTION_KEY: ACTION_BACK}
-
-        method_map = {0: DiscoverMethod.TAG}
-        selected_method = method_map[choice]
-
-        # Store in submission and update instance variable
-        self._add_discovery_method(method=selected_method)
-
-        self._save_progress()
-
-        self.ui.display_info(f"✅ Selected: {methods[choice]}")
-        return {}
-
-    @session_step("Discover Eligible Resources", order=4)
+    @session_step("Discover Eligible Resources", order=3)
     def discover_resources(self) -> Dict[str, str]:
         """Execute resource discovery using input handler."""
-        if not self._discovery_method:
-            self.ui.display_error("No discovery method selected")
-            return {ACTION_KEY: ACTION_BACK}
+        # Auto-set tag-based discovery (only supported method)
+        self._add_discovery_method(method=DiscoverMethod.TAG)
 
         self.ui.display_header("Resource Discovery")
 
-        if self._discovery_method == DiscoverMethod.TAG:
-            regions = (
-                self.submission.workload_onboard.regions
-                if self.submission.workload_onboard
-                else ["us-east-1"]
-            )
+        regions = (
+            self.submission.workload_onboard.regions
+            if self.submission.workload_onboard
+            else ["us-east-1"]
+        )
 
-            result = discover_resources_by_tags(self._input_resource_discovery, regions)
+        result = discover_resources_by_tags(self._input_resource_discovery, regions)
 
-            # Handle navigation action
-            if isinstance(result, dict) and result.get("action") == "back":
-                return result
+        # Handle navigation action
+        if isinstance(result, dict) and result.get("action") == "back":
+            return result
 
-            # Extract resources and tags from tuple result
-            resources, tag_filters = result
-            self._total_resources_discovered = len(resources)
+        # Extract resources and tags from tuple result
+        resources, tag_filters = result
+        self._total_resources_discovered = len(resources)
 
-            # Store resources and tags in submission
-            if not self.submission:
-                raise RuntimeError("No submission available")
-            self.submission.resource_arns_selected = resources
-            self.submission.resource_tags = tag_filters
-        else:
-            if not self.submission:
-                raise RuntimeError("No submission available")
-            self.submission.resource_arns_selected = []
+        # Store resources and tags in submission
+        if not self.submission:
+            raise RuntimeError("No submission available")
+        self.submission.resource_arns_selected = resources
+        self.submission.resource_tags = tag_filters
 
         resource_count = (
             len(self.submission.resource_arns_selected)
@@ -196,14 +161,9 @@ class WorkloadSession(InteractiveSession):
             message=f"✅ Discovered {resource_count} eligible resources for all given regions",
             style=STYLE_BLUE,
         )
-        self.ui.display_info(
-            message="ℹ️  Resources not eligible for monitoring like IAM roles, security "
-            "groups, and subnets are excluded",
-            style="dim",
-        )
         return {}
 
-    @session_step("Select Resources", order=5)
+    @session_step("Select Resources", order=4)
     def select_resources(self) -> Dict[str, str]:
         """Production-grade resource selection using MLOAdapter."""
         if not self.submission or not self.submission.resource_arns_selected:
@@ -227,7 +187,7 @@ class WorkloadSession(InteractiveSession):
         self.submission.resource_arns_selected = result
         return {}
 
-    @session_step("Create Support Case", order=6)
+    @session_step("Create Support Case", order=5)
     def create_support_case(self) -> Dict[str, Any]:
         """Create AWS Support Case for workload onboard."""
         try:
@@ -235,7 +195,7 @@ class WorkloadSession(InteractiveSession):
 
             continue_to_support_case = self.ui.prompt_confirm(
                 (
-                    "Are you ready to submit the workload with the above information "
+                    "Would you like to submit the workload with the above information "
                     "and create a support case?"
                 ),
                 default=True,
@@ -275,7 +235,7 @@ class WorkloadSession(InteractiveSession):
 
             return {}
 
-    @session_step("Alarm creation handoff", order=7)
+    @session_step("Alarm creation handoff", order=6)
     def _handoff_to_alarm_creation(self) -> Dict[str, Any]:
         """Handle workload registration completion and workflow transition."""
 
@@ -394,16 +354,13 @@ class WorkloadSession(InteractiveSession):
         if self.current_step >= 2 and self.submission.workload_onboard:
             self._display_workload_context()
 
-        # Step 3: Discovery Method (show if step >= 3)
-        if self.current_step >= 3:
+        # Step 3: Resource Discovery (show if step >= 3)
+        if self.current_step >= 3 and self.submission.resource_arns_selected:
             self._display_discovery_method_context()
-
-        # Step 4: Resource Discovery (show if step >= 4)
-        if self.current_step >= 4 and self.submission.resource_arns_selected:
             self._display_resource_discovery_context()
 
-        # Step 5: Resource Selection (show if step >= 5)
-        if self.current_step >= 5:
+        # Step 4: Resource Selection (show if step >= 4)
+        if self.current_step >= 4:
             self._display_resource_selection_context()
 
     def _display_workload_context(self) -> None:

@@ -74,7 +74,9 @@ class UpdateSession(InteractiveSession):
         if self.submission.workload_onboard and self.submission.workload_onboard.name:
             self._workload_name = self.submission.workload_onboard.name
             self.ui.display_info(f"Current workload: {self._workload_name}")
-            if not self.ui.prompt_confirm("Change workload name?", default=False):
+            if not self.ui.prompt_confirm(
+                "Would you like to modify the workload name?", default=False
+            ):
                 return {}
 
         default_name = self._workload_name or None
@@ -280,7 +282,9 @@ class UpdateSession(InteractiveSession):
         elif self._update_type == UPDATE_TYPE_ALARMS:
             self._display_alarm_summary()
 
-        if not self.ui.prompt_confirm("Submit this update request?", default=True):
+        if not self.ui.prompt_confirm(
+            "Would you like to submit this update request?", default=True
+        ):
             self.ui.display_warning("Update request cancelled")
             return {ACTION_KEY: ACTION_PAUSE}
 

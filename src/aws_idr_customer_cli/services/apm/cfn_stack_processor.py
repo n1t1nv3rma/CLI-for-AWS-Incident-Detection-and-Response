@@ -5,9 +5,16 @@ import aws_idr_customer_cli.utils.apm.lambda_code
 from aws_idr_customer_cli.data_accessors.cloudformation_accessor import (
     CloudFormationAccessor,
 )
-from aws_idr_customer_cli.utils.apm.apm_config import get_default_incident_path
+from aws_idr_customer_cli.utils.apm.apm_config import (
+    get_default_incident_path,
+    resolve_provider_enum,
+)
 from aws_idr_customer_cli.utils.apm.apm_constants import (
+    AUTHORIZER_CODE_FILES,
     LAMBDA_CODE_FILES,
+    PROVIDER_AUTHORIZER_CODE_FILES,
+    PROVIDER_LAMBDA_CODE_FILES,
+    ApmProvider,
     IntegrationType,
 )
 
@@ -38,9 +45,16 @@ class CfnTemplateProcessor:
         # Use custom path or APM-specific default
         incident_path = custom_incident_path or get_default_incident_path(apm_provider)
 
-        # Load Lambda code from separate file and replace placeholder
-        lambda_code = self._load_lambda_code(integration_type)
+        # Load Lambda code: check provider-level override first, then integration type
+        lambda_code = self._load_lambda_code(integration_type, apm_provider)
         template = self._replace_lambda_code_placeholder(template, lambda_code)
+
+        # Load and replace authorizer code if template has the placeholder
+        authorizer_code = self._load_authorizer_code(integration_type, apm_provider)
+        if authorizer_code:
+            template = self._replace_authorizer_code_placeholder(
+                template, authorizer_code
+            )
 
         # Update environment variable for incident path
         template = self._update_incident_path_env(template, incident_path)
@@ -49,27 +63,93 @@ class CfnTemplateProcessor:
         self._validate_template(processed_template, region)
         return processed_template
 
-    def _load_lambda_code(self, integration_type: IntegrationType) -> str:
+    def _load_lambda_code(
+        self, integration_type: IntegrationType, apm_provider: str = ""
+    ) -> str:
         """
-        Load Lambda code from separate file based on integration type.
+        Load Lambda code from separate file.
+
+        Checks provider-level overrides first, then falls back to integration type.
         """
-        lambda_file = LAMBDA_CODE_FILES.get(integration_type)
-        if not lambda_file:
+        code = self._load_code_file(
+            provider_overrides=PROVIDER_LAMBDA_CODE_FILES,
+            type_defaults=LAMBDA_CODE_FILES,
+            integration_type=integration_type,
+            apm_provider=apm_provider,
+        )
+        if code is None:
             supported = ", ".join(t.value for t in LAMBDA_CODE_FILES.keys())
             raise ValueError(
                 f"Unsupported integration type '{integration_type.value}'. "
                 f"Supported types: {supported}"
             )
+        return code
+
+    def _load_authorizer_code(
+        self, integration_type: IntegrationType, apm_provider: str = ""
+    ) -> Optional[str]:
+        """
+        Load authorizer Lambda code from separate file.
+
+        Returns None if no authorizer code is configured for the integration type,
+        allowing templates without authorizers (SAAS, SNS) to skip this step.
+        """
+        return self._load_code_file(
+            provider_overrides=PROVIDER_AUTHORIZER_CODE_FILES,
+            type_defaults=AUTHORIZER_CODE_FILES,
+            integration_type=integration_type,
+            apm_provider=apm_provider,
+        )
+
+    def _load_code_file(
+        self,
+        provider_overrides: Dict[ApmProvider, str],
+        type_defaults: Dict[IntegrationType, str],
+        integration_type: IntegrationType,
+        apm_provider: str = "",
+    ) -> Optional[str]:
+        """
+        Load code from a file, checking provider overrides then integration type defaults.
+
+        Returns None if no file is configured for the given provider/integration type.
+        """
+        # Check provider-level override first
+        code_file = None
+        provider_enum = resolve_provider_enum(apm_provider)
+        if provider_enum and provider_enum in provider_overrides:
+            code_file = provider_overrides[provider_enum]
+
+        # Fall back to integration type mapping
+        if not code_file:
+            code_file = type_defaults.get(integration_type)
+        if not code_file:
+            return None
 
         try:
             pkg_path = aws_idr_customer_cli.utils.apm.lambda_code.__path__[0]
-            file_path = f"{pkg_path}/{lambda_file}"
+            file_path = f"{pkg_path}/{code_file}"
             with open(file_path, "r", encoding="utf-8") as f:
                 return f.read()
         except FileNotFoundError:
-            raise ValueError(f"Lambda code file not found: {lambda_file}")
+            raise ValueError(f"Code file not found: {code_file}")
         except Exception as e:
-            raise ValueError(f"Failed to read Lambda code from {lambda_file}: {e}")
+            raise ValueError(f"Failed to read code from {code_file}: {e}")
+
+    def _replace_authorizer_code_placeholder(
+        self, template: Dict[str, Any], authorizer_code: str
+    ) -> Dict[str, Any]:
+        """
+        Replace authorizer Lambda code placeholder with actual code from file.
+        """
+        resources = template.get("Resources", {})
+        for resource in resources.values():
+            if resource.get("Type") != "AWS::Lambda::Function":
+                continue
+            code_block = resource.get("Properties", {}).get("Code", {})
+            if code_block.get("ZipFile") == "{{AUTHORIZER_CODE_PLACEHOLDER}}":
+                resource["Properties"]["Code"]["ZipFile"] = authorizer_code
+                break
+        return template
 
     def _replace_lambda_code_placeholder(
         self, template: Dict[str, Any], lambda_code: str

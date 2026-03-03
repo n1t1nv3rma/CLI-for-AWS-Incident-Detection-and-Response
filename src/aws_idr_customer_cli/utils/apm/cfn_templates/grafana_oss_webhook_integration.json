@@ -4,7 +4,7 @@
     "Parameters": {
         "APMNameParameter": {
             "Type": "String",
-            "Default": "Dynatrace",
+            "Default": "GrafanaOSS",
             "Description": "Enter the name of the Application Performance Monitoring (APM) tool without any spaces. e.g. Dynatrace, SumoLogic, Prometheus.",
             "AllowedPattern": "^[a-zA-Z0-9]*$",
             "ConstraintDescription": "The pattern allows only lowercase and uppercase alphabetical characters and numerals (^[a-zA-Z0-9]*$)."
@@ -112,7 +112,7 @@
                         "EnvEventBusName": {
                             "Ref": "CustomEventBus"
                         },
-                        "INCIDENT_PATH": "raw_json[\"detail\"][\"ProblemTitle\"]"
+                        "INCIDENT_PATH": "alert[\"labels\"][\"alertname\"]"
                     }
                 },
                 "Handler": "index.lambda_handler",
@@ -244,8 +244,8 @@
                 "Name": {
                     "Fn::Sub": "${APMNameParameter}-APIGW-Authorizer"
                 },
-                "Type": "TOKEN",
-                "IdentitySource": "method.request.header.authorizationToken",
+                "Type": "REQUEST",
+                "IdentitySource": "method.request.header.Authorization",
                 "AuthorizerUri": {
                     "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AuthorizerLambdaFunction.Arn}/invocations"
                 },
@@ -264,22 +264,12 @@
                     "Ref": "APIGWResourcesforAPM"
                 },
                 "HttpMethod": "POST",
-                "MethodResponses": [
-                    {
-                        "StatusCode": 200
-                    }
-                ],
                 "AuthorizationType": "CUSTOM",
                 "AuthorizerId": {
                     "Ref": "APIGWAuthorizerforAPM"
                 },
                 "Integration": {
-                    "Type": "AWS",
-                    "IntegrationResponses": [
-                        {
-                            "StatusCode": 200
-                        }
-                    ],
+                    "Type": "AWS_PROXY",
                     "IntegrationHttpMethod": "POST",
                     "Uri": {
                         "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${TransformLambdaFunction.Arn}/invocations"
@@ -358,7 +348,8 @@
                             "apigw-access-logs"
                         ]
                     ]
-                }
+                },
+                "RetentionInDays": 90
             }
         },
         "APIGWUsagePlan": {
@@ -400,7 +391,10 @@
                 "FunctionName": {
                     "Ref": "TransformLambdaFunction"
                 },
-                "Principal": "apigateway.amazonaws.com"
+                "Principal": "apigateway.amazonaws.com",
+                "SourceArn": {
+                    "Fn::Sub": "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RestAPIforAPM}/*"
+                }
             }
         },
         "ConfigAuthorizerLambdaPermissionforAPIGW": {
@@ -414,7 +408,10 @@
                 "FunctionName": {
                     "Ref": "AuthorizerLambdaFunction"
                 },
-                "Principal": "apigateway.amazonaws.com"
+                "Principal": "apigateway.amazonaws.com",
+                "SourceArn": {
+                    "Fn::Sub": "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RestAPIforAPM}/*"
+                }
             }
         }
     }

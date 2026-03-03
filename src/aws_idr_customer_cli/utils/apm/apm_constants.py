@@ -31,6 +31,7 @@ class ApmProvider(str, Enum):
     GRAFANA_CLOUD = "Grafana Cloud"
     SPLUNK = "Splunk Observability Cloud"
     DYNATRACE = "Dynatrace"
+    GRAFANA_OSS = "Grafana OSS"
 
 
 @dataclass(frozen=True)
@@ -271,6 +272,7 @@ DEFAULT_INCIDENT_PATHS = {
     ApmProvider.GRAFANA_CLOUD: IncidentPath(path='alert["labels"]["alertname"]'),
     ApmProvider.SPLUNK: IncidentPath(path='event["detail"]["ruleName"]'),
     ApmProvider.DYNATRACE: IncidentPath(path='raw_json["detail"]["ProblemTitle"]'),
+    ApmProvider.GRAFANA_OSS: IncidentPath(path='alert["labels"]["alertname"]'),
 }
 
 # Template file mapping based on integration type
@@ -280,11 +282,31 @@ TEMPLATE_FILES: Dict[IntegrationType, str] = {
     IntegrationType.NON_SAAS: "non_saas_integration.json",
 }
 
+# Provider-specific template file overrides
+PROVIDER_TEMPLATE_FILES: Dict[ApmProvider, str] = {
+    ApmProvider.GRAFANA_OSS: "grafana_oss_webhook_integration.json",
+}
+
+# Provider-specific Lambda code file overrides
+PROVIDER_LAMBDA_CODE_FILES: Dict[ApmProvider, str] = {
+    ApmProvider.GRAFANA_OSS: "grafana_oss_lambda.py",
+}
+
 # Lambda function code file mapping based on integration type
 LAMBDA_CODE_FILES: Dict[IntegrationType, str] = {
     IntegrationType.SAAS: "saas_lambda.py",
     IntegrationType.SNS: "sns_lambda.py",
     IntegrationType.NON_SAAS: "non_saas_lambda.py",
+}
+
+# Authorizer Lambda code file mapping based on integration type
+AUTHORIZER_CODE_FILES: Dict[IntegrationType, str] = {
+    IntegrationType.NON_SAAS: "non_saas_authorizer.js",
+}
+
+# Provider-specific authorizer code file overrides
+PROVIDER_AUTHORIZER_CODE_FILES: Dict[ApmProvider, str] = {
+    ApmProvider.GRAFANA_OSS: "grafana_oss_authorizer.js",
 }
 
 # APM Provider configurations
@@ -313,6 +335,11 @@ APM_PROVIDERS: Dict[ApmProvider, ApmProviderConfig] = {
         integration_type=IntegrationType.NON_SAAS,
         incident_path=DEFAULT_INCIDENT_PATHS[ApmProvider.DYNATRACE],
         domains=["dynatrace.com"],
+    ),
+    ApmProvider.GRAFANA_OSS: ApmProviderConfig(
+        integration_type=IntegrationType.NON_SAAS,
+        incident_path=DEFAULT_INCIDENT_PATHS[ApmProvider.GRAFANA_OSS],
+        domains=[],
     ),
 }
 
@@ -388,16 +415,23 @@ class ApmDocumentationUrls(str, Enum):
         "notification-services/send-alerts-to-amazon-eventbridge"
     )
 
+    GRAFANA_OSS_WEBHOOK = (
+        "https://grafana.com/docs/grafana/latest/alerting/"
+        "configure-notifications/manage-contact-points/"
+        "integrations/webhook-notifier/"
+    )
+
     @classmethod
     def get_provider_docs(cls, provider: str) -> str:
         """Get documentation URL for specific APM provider."""
         provider_mapping = {
             "Dynatrace": cls.DYNATRACE_WEBHOOK,
             "Grafana Cloud": cls.GRAFANA_CLOUD_SNS,
+            "Grafana OSS": cls.GRAFANA_OSS_WEBHOOK,
             "Managed Grafana": cls.MANAGED_GRAFANA_SNS,
             "Splunk Observability Cloud": cls.SPLUNK,
         }
-        return provider_mapping.get(provider, cls.EVENTBRIDGE)
+        return provider_mapping.get(provider, cls.EVENTBRIDGE).value
 
 
 class StackStatus(str, Enum):
@@ -454,6 +488,8 @@ APM_TEST_EVENT_DOCS: Dict[str, str] = {
     "notifications-and-alerting/problem-notifications/webhook-integration",
     "New Relic": "https://docs.newrelic.com/docs/alerts/"
     "get-notified/notification-integrations/#eventBridge",
+    "Grafana OSS": "https://grafana.com/docs/grafana/latest/alerting/"
+    "configure-notifications/manage-contact-points/",
 }
 
 # Next steps instructions for alarm ingestion
@@ -474,6 +510,24 @@ APM_WEBHOOK_SETUP_INSTRUCTIONS = [
     "  4. Configure the webhook payload (if required)",
     "  5. Test the webhook to verify connectivity",
 ]
+
+# Grafana OSS-specific webhook setup instructions
+GRAFANA_OSS_WEBHOOK_SETUP_INSTRUCTIONS = [
+    "  1. Open Grafana → Alerting → Contact points",
+    '  2. Click "Add contact point"',
+    '  3. Name it (e.g., "IDR Webhook")',
+    "  4. Select integration type: Webhook",
+    "  5. Set URL to: {webhook_url}",
+    '  6. Under "Authorization Header - Scheme": enter Bearer',
+    '  7. Under "Authorization Header - Credentials": enter {token_instructions}',
+    '  8. Click "Test" to verify, then "Save contact point"',
+]
+
+# Grafana documentation version disclaimer
+GRAFANA_OSS_DOCS_VERSION_DISCLAIMER = (
+    "  ℹ️  Note: Set the Grafana docs version selector to match your "
+    "installed Grafana version for the most accurate instructions."
+)
 
 # Webhook secret key label
 APM_WEBHOOK_SECRET_KEY_LABEL = "  • Key: APMSecureToken"

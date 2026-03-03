@@ -6,15 +6,11 @@ class ResourceFinderServiceInterface(ABC):
     """Interface for functional resource finder operations."""
 
     @abstractmethod
-    def find_functional_resources_by_tag(
+    def find_all_resources_by_tag(
         self, tag_key: str, tag_value: str, regions: List[str]
     ) -> List[Dict[str, Any]]:
         """
-        Find functional resources by tag key and value.
-
-        Only returns resources that are classified as functional (e.g., EC2
-        instances, Lambda functions) and excludes non-functional resources
-        (e.g., IAM roles, security groups).
+        Find all resources by tag key and value.
 
         Args:
             tag_key: The tag key to search for
@@ -28,15 +24,11 @@ class ResourceFinderServiceInterface(ABC):
         pass
 
     @abstractmethod
-    def find_functional_resources_by_tags(
+    def find_all_resources_by_tags(
         self, tags: List[Dict[str, str]], regions: List[str]
     ) -> List[Dict[str, Any]]:
         """
-        Find functional resources by multiple tags.
-
-        Only returns resources that are classified as functional (e.g., EC2
-        instances, Lambda functions) and excludes non-functional resources
-        (e.g., IAM roles, security groups).
+        Find all resources by multiple tags.
 
         Args:
             tags: List of tag filters to search for

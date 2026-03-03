@@ -51,6 +51,9 @@ class MloSelectionManager(BaseSelectionManager):
         self.return_back_in_cli: bool = (
             False  # Flag to allow users to go to the pervious CLI step
         )
+        self.accept_and_proceed: bool = (
+            False  # Flag to skip confirmation and proceed directly
+        )
 
     def manage_selection(
         self,
@@ -255,6 +258,9 @@ class MloSelectionManager(BaseSelectionManager):
 
             self.breadcrumbs.pop()
 
+            if self.accept_and_proceed:
+                break
+
     def _manage_per_category_selection(self, items: List[MloItem]) -> None:
 
         while True:
@@ -298,6 +304,9 @@ class MloSelectionManager(BaseSelectionManager):
             else:
                 previous_bc = "Regional view"
 
+            global_selected = self._total_selected_count(items=self.items)
+            global_total = len(self.items)
+
             options = [
                 f"1 → Select all {total_resources} {self.item_attribute_name}s and "
                 f'go back to "Regional view"',
@@ -305,8 +314,13 @@ class MloSelectionManager(BaseSelectionManager):
                 "3 → Accept current resource selection "
                 f"({total_selected_count} of {total_resources} "
                 f'{self.item_attribute_name}s selected) and go back to "{previous_bc}"',
-                f"4 → Review individual {self.item_attribute_name}s and "
+                f"4 → Review {self.item_attribute_name}s group by service and "
+                "customize selection",
+                f"5 → Review individual {self.item_attribute_name}s and "
                 f"customize selection",
+                f"6 → Accept current selection ({global_selected} of "
+                f"{global_total} {self.item_attribute_name}s selected) "
+                f"and proceed to onboarding",
             ]
 
             choice = self.ui.select_option(
@@ -322,13 +336,156 @@ class MloSelectionManager(BaseSelectionManager):
                 break
             elif choice == 1:  # Deselect all
                 self._deselect_all_items(item_list=items)
-            elif choice == 2:  # Accept current selection
+            elif choice == 2:  # Accept current selection and go back
                 self.breadcrumbs.pop()
                 break
-            elif choice == 3:  # Review individual resources
+            elif choice == 3:  # Service group view
+                self._manage_per_service_selection(items=items)
+                if self.accept_and_proceed:
+                    self.breadcrumbs.pop()
+                    break
+            elif choice == 4:  # Review individual resources
                 self._manage_detailed_item_selection(items=items)
+                if self.accept_and_proceed:
+                    self.breadcrumbs.pop()
+                    break
+            elif choice == 5:  # Accept and proceed to onboarding
+                self.accept_and_proceed = True
+                self.breadcrumbs.pop()
+                break
 
             self.breadcrumbs.pop()
+
+    def _manage_per_service_selection(self, items: List[MloItem]) -> None:
+        # Track which services are selected (not the items themselves)
+        selected_services: set[str] = set()
+
+        while True:
+            self.ui.display_header(self.message_header)
+
+            self.breadcrumbs.append(
+                f"Service group view in " f"{self.selected_region} region"
+            )
+            self._display_breadcrumbs()
+
+            # Group the items by service
+            services = self._group_items_by_service(items=items)
+            service_count = len(services)
+            sorted_service_names = sorted(services.keys())
+
+            # Build service details display
+            per_service_detailed_string_list = []
+            for i, service_name in enumerate(sorted_service_names, 1):
+                service_items = services[service_name]
+                resource_count = len(service_items)
+                is_selected = service_name in selected_services
+                selected_status = (
+                    "[yellow]selected[/yellow]" if is_selected else "not selected"
+                )
+                per_service_detailed_string_list.append(
+                    f"{i}: {service_name} ({resource_count} resources) - {selected_status}\n"
+                )
+                per_service_detailed_string_list.append(
+                    f"    Region: {self.selected_region}\n"
+                )
+
+            resource_summary = (
+                f"Service list in "
+                f"{self.selected_region} region:\n"
+                "Service details:\n"
+                f"{''.join(per_service_detailed_string_list)}"
+                f"Currently selected: {len(selected_services)} "
+                f"of {service_count} services\n"
+            )
+
+            self.ui.display_info(message=resource_summary, style="white")
+
+            if len(self.breadcrumbs) > 1:
+                previous_bc = self.breadcrumbs[-2]
+            else:
+                previous_bc = f"{self.item_attribute_name.capitalize()} group view"
+
+            # Calculate action choice numbers
+            deselect_all_choice = service_count
+            accept_and_review_choice = deselect_all_choice + 1
+            select_all_and_proceed_choice = accept_and_review_choice + 1
+            accept_proceed_choice = select_all_and_proceed_choice + 1
+            max_choice = accept_proceed_choice + 1
+
+            global_selected = self._total_selected_count(items=self.items)
+            global_total = len(self.items)
+
+            service_options = [
+                f"1-{service_count} → Mark service as selected by number",
+                f"{deselect_all_choice + 1} → Deselect all",
+                f"{accept_and_review_choice + 1} → Accept current service "
+                f"selection ({len(selected_services)} selected of "
+                f"{service_count}) and go ahead to review individual "
+                f"resources and customize selection",
+                f"{select_all_and_proceed_choice + 1} → Select all resources"
+                f" for the selected service and go back to "
+                f'"{previous_bc}"',
+                f"{accept_proceed_choice + 1} → Accept current selection "
+                f"({global_selected} selected of {global_total}) "
+                f"and proceed to onboarding",
+            ]
+
+            # Support bulk selection
+            selection = self.ui.select_multiple_with_ranges(
+                options=service_options,
+                message="What would you like to do?",
+                explicit_index=True,
+                max_choice_number=max_choice,
+                exclusive_choices=[
+                    deselect_all_choice + 1,
+                    accept_and_review_choice + 1,
+                    select_all_and_proceed_choice + 1,
+                    accept_proceed_choice + 1,
+                ],
+            )
+
+            should_exit = False
+            for choice in selection:
+                if choice < service_count:  # Mark service as selected
+                    selected_service = sorted_service_names[choice]
+                    selected_services.add(selected_service)
+                elif choice == deselect_all_choice:  # Deselect all
+                    selected_services.clear()
+                elif (
+                    choice == accept_and_review_choice
+                ):  # Accept and review individual resources
+                    # Filter items to only selected services
+                    filtered_items = [
+                        item for item in items if item.group in selected_services
+                    ]
+                    if filtered_items:
+                        self._manage_detailed_item_selection(items=filtered_items)
+                    should_exit = True
+                    break
+                elif (
+                    choice == select_all_and_proceed_choice
+                ):  # Select all resources and proceed
+                    # Select all items in selected services
+                    for item in items:
+                        if item.group in selected_services:
+                            item.selected = True
+                    should_exit = True
+                    break
+                elif (
+                    choice == accept_proceed_choice
+                ):  # Accept and proceed to onboarding
+                    # Select all items in selected services
+                    for item in items:
+                        if item.group in selected_services:
+                            item.selected = True
+                    self.accept_and_proceed = True
+                    should_exit = True
+                    break
+
+            self.breadcrumbs.pop()
+
+            if should_exit:
+                break
 
     def _manage_detailed_item_selection(self, items: List[MloItem]) -> None:
 
@@ -346,7 +503,8 @@ class MloSelectionManager(BaseSelectionManager):
             # Calculate action choice numbers
             deselect_all_choice = item_count
             go_back_choice = deselect_all_choice + 1
-            max_choice = go_back_choice + 1
+            accept_proceed_choice = go_back_choice + 1
+            max_choice = accept_proceed_choice + 1
 
             # Build item details display
             per_item_detailed_string_list = []
@@ -384,12 +542,20 @@ class MloSelectionManager(BaseSelectionManager):
             else:
                 previous_bc = f"{self.item_attribute_name.capitalize()} group view"
 
+            global_selected = self._total_selected_count(items=self.items)
+            global_total = len(self.items)
+
             level_three_options = [
-                f"1-{item_count} → Mark {self.item_attribute_name} as selected by number",
+                f"1-{item_count} → Mark {self.item_attribute_name} "
+                f"as selected by number",
                 f"{deselect_all_choice + 1} → Deselect all",
-                f"{go_back_choice + 1} → Accept current {self.item_attribute_name} selection "
-                f"({total_selected_count} selected of {len(items)}) and go back to "
-                f'"{previous_bc}"',
+                f"{go_back_choice + 1} → Accept current "
+                f"{self.item_attribute_name} selection "
+                f"({total_selected_count} selected of {len(items)}) "
+                f'and go back to "{previous_bc}"',
+                f"{accept_proceed_choice + 1} → Accept current "
+                f"selection ({global_selected} selected of "
+                f"{global_total}) and proceed to onboarding",
             ]
 
             # Support bulk selection
@@ -398,7 +564,11 @@ class MloSelectionManager(BaseSelectionManager):
                 message="What would you like to do?",
                 explicit_index=True,
                 max_choice_number=max_choice,
-                exclusive_choices=[deselect_all_choice + 1, go_back_choice + 1],
+                exclusive_choices=[
+                    deselect_all_choice + 1,
+                    go_back_choice + 1,
+                    accept_proceed_choice + 1,
+                ],
             )
 
             should_exit = False
@@ -408,6 +578,10 @@ class MloSelectionManager(BaseSelectionManager):
                 elif choice == deselect_all_choice:
                     self._deselect_all_items(item_list=items)
                 elif choice == go_back_choice:
+                    should_exit = True
+                    break
+                elif choice == accept_proceed_choice:
+                    self.accept_and_proceed = True
                     should_exit = True
                     break
 
@@ -451,6 +625,14 @@ class MloSelectionManager(BaseSelectionManager):
             )
 
         return output_dict
+
+    def _group_items_by_service(self, items: List[MloItem]) -> Dict[str, List[MloItem]]:
+        services: Dict[str, List[MloItem]] = {}
+        for item in items:
+            if item.group not in services:
+                services[item.group] = []
+            services[item.group].append(item)
+        return services
 
     @staticmethod
     def _deselect_all_items(item_list: List[MloItem]) -> None:
@@ -542,5 +724,6 @@ class MloSelectionManager(BaseSelectionManager):
         if choice == 0:  # Confirm and continue
             return True
         else:  # Edit selection
+            self.accept_and_proceed = False
             self._manage_region_selection()
             return False

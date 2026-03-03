@@ -5,7 +5,7 @@ Specifying which alarms IDR should monitor is the second phase of onboarding. On
 At the end of the workload onboarding session, you will be prompted:
 
 ```
-→ Would you like to continue with alarm creation for this workload? [y/n] (y):
+→ Would you like to continue with alarm creation for this workload? (y):
 ```
 
 If you enter y , you will enter create-alarms workflow directly. If you enter n , the workload session will complete, and you can proceed to alarm creation by executing awsidr create-alarms when you are ready. Or, you can proceed to the <INGEST EXISTING ALARMS WORKFLOW> 
@@ -141,11 +141,48 @@ What would you like to do?:
   1 → Select all 83 alarms and go back to "Regional view"
   2 → Deselect all 83 alarms
   3 → Accept current resource selection (83 of 83 alarms selected) and go back to "Regional view"
-  4 → Review individual alarms and customize selection
-→ Enter number (1-4):
+  4 → Review alarms group by service and customize selection
+  5 → Review individual alarms and customize selection
+→ Enter number (1-5):
 ```
 
-To view the actual alarm configuration, choose 'Review individual alarms and customize selection' (Option 4). 
+### Service Group View (Optional)
+
+If you want to narrow down alarms by service before reviewing individual alarms, choose 'Review alarms group by service and customize selection' (Option 4). This allows you to select specific services and then review only the alarms for those services:
+
+```
+Alarm Creation Selection
+────────────────────────
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+Regional view > Alarm group view in All region > Service group view in All region
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+Service list in All region:
+Service details:
+1: apigateway (27 resources) - not selected
+    Region: All
+2: rds:db (4 resources) - not selected
+    Region: All
+Currently selected: 0 of 2 services
+
+What would you like to do?:
+  1-2 → Mark service as selected by number
+  3 → Deselect all
+  4 → Accept current service selection (0 selected of 2) and go ahead to review individual resources and customize selection
+  5 → Select all resources for the selected service and go back to "Alarm group view in All region"
+→ Enter your choice (1,3 or 1-3 or 1,3-5, select range: 1-5) : 2
+```
+
+After selecting services (e.g., selecting service 2 for rds:db), you can:
+- **Option 4**: Review and customize individual alarms for the selected services
+- **Option 5**: Select all alarms for the selected services and proceed
+
+If you choose Option 4, you'll see only the alarms for your selected services in the individual alarm view.
+
+### Individual Alarm View
+
+To view the actual alarm configuration, choose 'Review individual alarms and customize selection' (Option 5 from Alarm group view, or after selecting services in Service group view). 
 
 To accept the alarm selection and proceed with alarm creation, you need to select the alarms, navigate back to the 'Regional view' by choosing 'Accept current selection and go back' option. In the 'Regional view', you need to accept the selection by once again choosing the 'Accept current selection' option. Then you'll see the 'Final confirmation' prompt with the summary of you selection, where you need to choose 'Confirm and continue with selection' option.
 
@@ -238,7 +275,7 @@ If an alarm was skipped but you need it:
 In this step you will be prompted whether to create the alarms selected in Select Alarms
 
 ```
-→ Are you ready to proceed with creating these 79 alarms? [y/n] (y): 
+→ Would you like to proceed with creating these 79 alarms? (y):
 ```
 
 If you answer n, the CLI will go back to the Select Alarms step so you can re-select the alarms to be created. If you answer y, the CLI will create the alarms. The CLI will then display alarm creation progress. Among these alarms, there can be alarms successfully created in the progress, alarms that already exists (created by previous CLI executions, we will not re-create them to avoid duplicate), and alarms that failed in the process of creation.
@@ -246,7 +283,7 @@ If you answer n, the CLI will go back to the Select Alarms step so you can re-se
 The CLI will onboard alarms that are successfully created and alarms that already exists. The following prompt will be displayed:
 
 ```
-→ Are you ready to proceed with onboarding these 79 alarms? [y/n] (y): 
+→ Would you like to proceed with onboarding these 79 alarms? (y):
 ```
 
 If you select `n` the CLI will terminate without creating support case, and you can resume execution by executing awsidr create-alarms again.
@@ -264,7 +301,7 @@ More details about this requirement can be found at this link:
 https://docs.aws.amazon.com/IDR/latest/userguide/idr-gs-access-prov.html
 
 ⚠️  Service Linked Role missing for IDR
-→ Would you like to create the Service Linked Role for IDR now? [y/n] (y):  
+→ Would you like to create the Service Linked Role for IDR now? (y):
 ```
 
 If you answer `y` to the confirm message, the Service Linked Role will be automatically created: 
@@ -290,5 +327,3 @@ If you answer `n` ,  you can create it later manually:
 - [IAM Policies](../iam-policies.md)
 - [FAQ](../faq.md)
 - [Appendix](../appendix.md)
-
-

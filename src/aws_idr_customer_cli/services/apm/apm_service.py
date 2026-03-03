@@ -478,7 +478,7 @@ class ApmService:
             apm_provider=provider,
             region=region,
             custom_incident_path=custom_incident_path,
-            parameters={PARAM_APM_NAME: provider},
+            parameters={PARAM_APM_NAME: provider.replace(" ", "")},
         )
 
     def deploy_saas_or_sns_stack(

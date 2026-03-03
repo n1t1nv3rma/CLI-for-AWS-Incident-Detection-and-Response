@@ -1,0 +1,113 @@
+service_name: "OpenSearch"
+
+templates:
+  - name: "IDR-OpenSearch-ClusterStatusRed"
+    service: "OpenSearch"
+    alarm_type: "RELIABILITY"
+    metric_type: "NATIVE"
+    description: "Monitors cluster status red indicating at least one primary shard and its replicas are unavailable. This is a critical condition where some data is inaccessible."
+    configuration:
+      AlarmName: "IDR-OpenSearch-ClusterStatusRed-${domain_name}"
+      MetricName: "ClusterStatus.red"
+      Namespace: "AWS/ES"
+      Statistic: "Maximum"
+      Period: 60
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 5
+      Threshold: 1
+      ComparisonOperator: "GreaterThanOrEqualToThreshold"
+      TreatMissingData: "notBreaching"
+      Dimensions: [
+        {
+          Name: "DomainName",
+          Value: "${domain_name}"
+        },
+        {
+          Name: "ClientId",
+          Value: "${client_id}"
+        }
+      ]
+    Tags: [
+      {
+        Key: "AlarmType",
+        Value: "IDR-BestPractice"
+      },
+      {
+        Key: "Service",
+        Value: "OpenSearch"
+      }
+    ]
+
+  - name: "IDR-OpenSearch-FreeStorageSpace"
+    service: "OpenSearch"
+    alarm_type: "PERFORMANCE"
+    metric_type: "NATIVE"
+    description: "Monitors available disk space across OpenSearch cluster nodes. Threshold is dynamically set to ~25% of the node's total storage capacity."
+    configuration:
+      AlarmName: "IDR-OpenSearch-FreeStorageSpace-${domain_name}"
+      MetricName: "FreeStorageSpace"
+      Namespace: "AWS/ES"
+      Statistic: "Minimum"
+      Period: 60
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 5
+      Threshold: 0
+      ComparisonOperator: "LessThanOrEqualToThreshold"
+      TreatMissingData: "notBreaching"
+      Dimensions: [
+        {
+          Name: "DomainName",
+          Value: "${domain_name}"
+        },
+        {
+          Name: "ClientId",
+          Value: "${client_id}"
+        }
+      ]
+    Tags: [
+      {
+        Key: "AlarmType",
+        Value: "IDR-BestPractice"
+      },
+      {
+        Key: "Service",
+        Value: "OpenSearch"
+      }
+    ]
+
+  - name: "IDR-OpenSearch-ClusterIndexWritesBlocked"
+    service: "OpenSearch"
+    alarm_type: "RELIABILITY"
+    metric_type: "NATIVE"
+    description: "Monitors when the cluster is blocking write requests. A value of 1 indicates the cluster is rejecting data modifications."
+    configuration:
+      AlarmName: "IDR-OpenSearch-ClusterIndexWritesBlocked-${domain_name}"
+      MetricName: "ClusterIndexWritesBlocked"
+      Namespace: "AWS/ES"
+      Statistic: "Maximum"
+      Period: 60
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 5
+      Threshold: 1
+      ComparisonOperator: "GreaterThanOrEqualToThreshold"
+      TreatMissingData: "notBreaching"
+      Dimensions: [
+        {
+          Name: "DomainName",
+          Value: "${domain_name}"
+        },
+        {
+          Name: "ClientId",
+          Value: "${client_id}"
+        }
+      ]
+    Tags: [
+      {
+        Key: "AlarmType",
+        Value: "IDR-BestPractice"
+      },
+      {
+        Key: "Service",
+        Value: "OpenSearch"
+      }
+    ]

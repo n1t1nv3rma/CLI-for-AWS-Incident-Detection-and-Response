@@ -256,7 +256,7 @@ Step 3/9: Review APM Setup Configuration
 │ APM Provider: New Relic                                                                                                                                                                                                                         │
 │ Integration Type: EventBridge Integration (SAAS)                                                                                                                                                                                                │
 ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-→ Would you like to proceed with this APM configuration? [y/n] (y): y
+→ Would you like to proceed with this APM configuration? (y): y
 
 ✅  APM configuration confirmed for integration
 ```
@@ -295,7 +295,7 @@ Depending on your selected APM provider and integration type, the CLI requires s
 Step 5/9: Integration Prerequisites
 
 → Do you have a Partner Event Source setup in Amazon EventBridge for New Relic? 
-  (example: aws.partner/newrelic.com/123456789012/source_name) [y/n] (y): y
+  (example: aws.partner/newrelic.com/123456789012/source_name) (y): y
 → Enter partner event source name for New Relic: aws.partner/newrelic.com/1234567/cloudwatch
 
 ✅ Validation successful
@@ -306,7 +306,7 @@ Step 5/9: Integration Prerequisites
 ```
 Step 5/9: Integration Prerequisites
 
-→ Do you have an SNS topic for Grafana Cloud integration? [y/n] (y): y
+→ Do you have an SNS topic for Grafana Cloud integration? (y): y
 → Enter SNS topic ARN: arn:aws:sns:us-east-1:123456789012:grafana-alerts
 
 ✅ Validation successful
@@ -325,7 +325,7 @@ Each APM tool sends alerts in a different JSON payload structure. The CLI uses a
 ```
 Step 6/9: Configure Incident Detection Event Path
 → Do you have any custom incident detection event path for New Relic? 
-(New Relic by default uses: event["detail"]["workflowName"]) [y/n] (n): n
+(New Relic by default uses: event["detail"]["workflowName"]) (n): n
 
 ✅ Using default path: event["detail"]["workflowName"]
 ```
@@ -335,7 +335,7 @@ Step 6/9: Configure Incident Detection Event Path
 If your APM uses a custom payload structure, select `y` and provide the correct path:
 
 ```
-→ Do you have any custom incident detection event path for New Relic? [y/n] (n): y
+→ Do you have any custom incident detection event path for New Relic? (n): y
 → Enter custom event path: event["detail"]["custom"]["alertName"]
 
 ✅ Using custom path: event["detail"]["custom"]["alertName"]
@@ -354,7 +354,7 @@ Step 7/9: Deploy CloudFormation Stack
   • Region: us-east-1
   • Provider: New Relic
 
-→ ⚠️  This will create AWS resources. Proceed with deployment? [y/n] (y): y
+→ ⚠️  This will create AWS resources. Would you like to proceed with deployment? (y): y
 
 📋 CloudFormation Parameters for NewRelic:
 
@@ -382,7 +382,7 @@ Step 8/9: Test Integration Readiness
 🧪 Testing Your APM Integration
 
 🔍 Optional: Check if webhook events are reaching Lambda
-→ Would you like to test the integration now? (You can also test later using the instructions below) [y/n] (y): 
+→ Would you like to test the integration now? (You can also test later using the instructions below) (y):
 
 ⏳ Waiting for Lambda activity (up to 90 seconds)...
 
@@ -399,7 +399,7 @@ Step 8/9: Test Integration Readiness
    • During this time, send a test alert from your APM
    • You can stop waiting at any time by pressing Ctrl+C
 
-→ Would you like to wait up to 15 minutes for Lambda to receive events? [y/n] (y): 
+→ Would you like to wait up to 15 minutes for Lambda to receive events? (y):
 
 ⏳ Starting extended wait (up to 15 minutes)...
 

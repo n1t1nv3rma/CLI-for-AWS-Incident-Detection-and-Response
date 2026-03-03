@@ -46,6 +46,7 @@
       "Sid": "ConditionalMetricValidation",
       "Effect": "Allow",
       "Action": [
+        "apigatewayv2:GetApi",
         "lambda:GetFunctionConfiguration",
         "sns:ListSubscriptionsByTopic",
         "sns:GetSubscriptionAttributes",
@@ -55,7 +56,11 @@
         "s3:GetBucketLocation",
         "keyspaces:GetKeyspace",
         "cloudfront:ListDistributions",
-        "cloudfront:GetDistribution"
+        "cloudfront:GetDistribution",
+        "kafka:ListNodes",
+        "kafka:DescribeClusterV2",
+        "es:DescribeDomain",
+        "elasticmapreduce:DescribeCluster"
       ],
       "Resource": "*"
     },

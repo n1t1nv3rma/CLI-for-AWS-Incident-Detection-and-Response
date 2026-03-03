@@ -156,7 +156,7 @@ class SetupApm(CommandBase):
 
         return bool(
             self.ui.prompt_confirm(
-                "Would you like to resume this APM setup session?",
+                "Would you like to resume your session?",
                 default=True,
             )
         )

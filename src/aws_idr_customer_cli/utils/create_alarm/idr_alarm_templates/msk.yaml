@@ -1,0 +1,266 @@
+service_name: "MSK"
+  
+templates:
+  - name: "IDR-MSK-CpuUtilization"
+    service: "MSK"
+    alarm_type: "PERFORMANCE"
+    metric_type: "NATIVE"
+    broker_type: "STANDARD"
+    description: "Monitors total CPU utilization (CpuUser + CpuSystem) for MSK brokers"
+    configuration:
+      AlarmName: "IDR-MSK-CpuUtilization-${cluster_name}-${broker_id}"
+      AlarmDescription: "Monitors total CPU utilization for MSK brokers"
+      Metrics: [
+        {
+          Id: "cpuUser",
+          ReturnData: false,
+          MetricStat: {
+            Metric: {
+              Namespace: "AWS/Kafka",
+              MetricName: "CpuUser",
+              Dimensions: [
+                {
+                  Name: "Cluster Name",
+                  Value: "${cluster_name}"
+                },
+                {
+                  Name: "Broker ID",
+                  Value: "${broker_id}"
+                }
+              ]
+            },
+            Period: 60,
+            Stat: "Average"
+          }
+        },
+        {
+          Id: "cpuSystem",
+          ReturnData: false,
+          MetricStat: {
+            Metric: {
+              Namespace: "AWS/Kafka",
+              MetricName: "CpuSystem",
+              Dimensions: [
+                {
+                  Name: "Cluster Name",
+                  Value: "${cluster_name}"
+                },
+                {
+                  Name: "Broker ID",
+                  Value: "${broker_id}"
+                }
+              ]
+            },
+            Period: 60,
+            Stat: "Average"
+          }
+        },
+        {
+          Id: "totalCpu",
+          ReturnData: true,
+          Expression: "cpuUser + cpuSystem",
+          Label: "Total CPU Utilization"
+        }
+      ]
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 5
+      Threshold: 60.0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "notBreaching"
+    Tags: [
+      {
+        Key: "AlarmType",
+        Value: "IDR-BestPractice"
+      },
+      {
+        Key: "Service",
+        Value: "MSK"
+      }
+    ]
+
+  - name: "IDR-MSK-HeapMemoryAfterGC"
+    service: "MSK"
+    alarm_type: "PERFORMANCE"
+    metric_type: "NATIVE"
+    broker_type: "STANDARD"
+    description: "Monitors heap memory usage after garbage collection for MSK brokers"
+    configuration:
+      AlarmName: "IDR-MSK-HeapMemoryAfterGC-${cluster_name}-${broker_id}"
+      AlarmDescription: "Monitors heap memory usage after garbage collection for MSK brokers"
+      MetricName: "HeapMemoryAfterGC"
+      Namespace: "AWS/Kafka"
+      Statistic: "Average"
+      Period: 60
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 5
+      Threshold: 60.0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "notBreaching"
+      Dimensions: [
+        {
+          Name: "Cluster Name",
+          Value: "${cluster_name}"
+        },
+        {
+          Name: "Broker ID",
+          Value: "${broker_id}"
+        }
+      ]
+    Tags: [
+      {
+        Key: "AlarmType",
+        Value: "IDR-BestPractice"
+      },
+      {
+        Key: "Service",
+        Value: "MSK"
+      }
+    ]
+
+  - name: "IDR-MSK-UnderMinIsrPartitionCount"
+    service: "MSK"
+    alarm_type: "RELIABILITY"
+    metric_type: "NATIVE"
+    broker_type: "STANDARD"
+    description: "Monitors partitions where the number of in-sync replicas is below the minimum"
+    configuration:
+      AlarmName: "IDR-MSK-UnderMinIsrPartitionCount-${cluster_name}-${broker_id}"
+      AlarmDescription: "Monitors partitions where the number of in-sync replicas is below the minimum"
+      MetricName: "UnderMinIsrPartitionCount"
+      Namespace: "AWS/Kafka"
+      Statistic: "Maximum"
+      Period: 60
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 5
+      Threshold: 0.0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "notBreaching"
+      Dimensions: [
+        {
+          Name: "Cluster Name",
+          Value: "${cluster_name}"
+        },
+        {
+          Name: "Broker ID",
+          Value: "${broker_id}"
+        }
+      ]
+    Tags: [
+      {
+        Key: "AlarmType",
+        Value: "IDR-BestPractice"
+      },
+      {
+        Key: "Service",
+        Value: "MSK"
+      }
+    ]
+
+  - name: "IDR-MSK-OfflinePartitionsCount"
+    service: "MSK"
+    alarm_type: "RELIABILITY"
+    metric_type: "NATIVE"
+    broker_type: "STANDARD"
+    description: "Monitors the number of partitions that are offline in the cluster"
+    configuration:
+      AlarmName: "IDR-MSK-OfflinePartitionsCount-${cluster_name}"
+      AlarmDescription: "Monitors the number of partitions that are offline in the cluster"
+      MetricName: "OfflinePartitionsCount"
+      Namespace: "AWS/Kafka"
+      Statistic: "Maximum"
+      Period: 60
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 5
+      Threshold: 0.0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "notBreaching"
+      Dimensions: [
+        {
+          Name: "Cluster Name",
+          Value: "${cluster_name}"
+        }
+      ]
+    Tags: [
+      {
+        Key: "AlarmType",
+        Value: "IDR-BestPractice"
+      },
+      {
+        Key: "Service",
+        Value: "MSK"
+      }
+    ]
+
+  - name: "IDR-MSK-ActiveControllerCount"
+    service: "MSK"
+    alarm_type: "RELIABILITY"
+    metric_type: "NATIVE"
+    broker_type: "EXPRESS"
+    description: "Monitors the number of active controllers in the cluster (should always be 1)"
+    configuration:
+      AlarmName: "IDR-MSK-ActiveControllerCount-${cluster_name}"
+      AlarmDescription: "Monitors the number of active controllers in the cluster (should always be 1)"
+      MetricName: "ActiveControllerCount"
+      Namespace: "AWS/Kafka"
+      Statistic: "Sum"
+      Period: 60
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 5
+      Threshold: 1.0
+      ComparisonOperator: "LessThanThreshold"
+      TreatMissingData: "notBreaching"
+      Dimensions: [
+        {
+          Name: "Cluster Name",
+          Value: "${cluster_name}"
+        }
+      ]
+    Tags: [
+      {
+        Key: "AlarmType",
+        Value: "IDR-BestPractice"
+      },
+      {
+        Key: "Service",
+        Value: "MSK"
+      }
+    ]
+
+  - name: "IDR-MSK-IAMTooManyConnections"
+    service: "MSK"
+    alarm_type: "RELIABILITY"
+    metric_type: "CONDITIONAL"
+    broker_type: "EXPRESS"
+    description: "Monitors when clients exceed IAM authentication connection limits, indicating potential security issues or misconfigured clients"
+    configuration:
+      AlarmName: "IDR-MSK-IAMTooManyConnections-${cluster_name}-${broker_id}"
+      AlarmDescription: "Monitors connections attempted beyond the IAM auth limit. Any value above 0 means the throttle limit is being exceeded and connection count must be reduced."
+      MetricName: "IAMTooManyConnections"
+      Namespace: "AWS/Kafka"
+      Statistic: "Sum"
+      Period: 60
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 5
+      Threshold: 0.0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "notBreaching"
+      Dimensions: [
+        {
+          Name: "Cluster Name",
+          Value: "${cluster_name}"
+        },
+        {
+          Name: "Broker ID",
+          Value: "${broker_id}"
+        }
+      ]
+    Tags: [
+      {
+        Key: "AlarmType",
+        Value: "IDR-BestPractice"
+      },
+      {
+        Key: "Service",
+        Value: "MSK"
+      }
+    ]

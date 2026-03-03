@@ -17,12 +17,15 @@ from aws_idr_customer_cli.data_accessors.cloudwatch_metrics_accessor import (
     CloudWatchMetricsAccessor,
 )
 from aws_idr_customer_cli.data_accessors.dynamodb_accessor import DynamoDbAccessor
+from aws_idr_customer_cli.data_accessors.emr_accessor import EmrAccessor
 from aws_idr_customer_cli.data_accessors.eventbridge_accessor import (
     EventBridgeAccessor,
 )
 from aws_idr_customer_cli.data_accessors.keyspaces_accessor import KeyspacesAccessor
 from aws_idr_customer_cli.data_accessors.lambda_accessor import LambdaAccessor
 from aws_idr_customer_cli.data_accessors.logs_accessor import LogsAccessor
+from aws_idr_customer_cli.data_accessors.msk_accessor import MskAccessor
+from aws_idr_customer_cli.data_accessors.opensearch_accessor import OpenSearchAccessor
 from aws_idr_customer_cli.data_accessors.rds_accessor import RdsAccessor
 from aws_idr_customer_cli.data_accessors.resource_tagging_accessor import (
     ResourceTaggingAccessor,
@@ -151,6 +154,24 @@ class AccessorsModule(Module):
 
     @singleton
     @provider
+    def provide_msk_accessor(self, logger: CliLogger) -> MskAccessor:
+        """Provide AWS MSK accessor."""
+        return MskAccessor(logger=logger, client_factory=create_aws_client)
+
+    @singleton
+    @provider
     def provide_keyspaces_accessor(self, logger: CliLogger) -> KeyspacesAccessor:
         """Provide AWS Keyspaces accessor."""
         return KeyspacesAccessor(logger=logger, client_factory=create_aws_client)
+
+    @singleton
+    @provider
+    def provide_emr_accessor(self, logger: CliLogger) -> EmrAccessor:
+        """Provide AWS EMR accessor."""
+        return EmrAccessor(logger=logger, client_factory=create_aws_client)
+
+    @singleton
+    @provider
+    def provide_opensearch_accessor(self, logger: CliLogger) -> OpenSearchAccessor:
+        """Provide AWS OpenSearch accessor."""
+        return OpenSearchAccessor(logger=logger, client_factory=create_aws_client)

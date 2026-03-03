@@ -161,7 +161,9 @@ class IngestAlarms(CommandBase):
 
         return cast(
             bool,
-            self.ui.prompt_confirm("Continue with existing session?", default=True),
+            self.ui.prompt_confirm(
+                "Would you like to resume your session?", default=True
+            ),
         )
 
     def _display_workload_summary(self, submission: OnboardingSubmission) -> None:
