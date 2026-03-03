@@ -17,10 +17,13 @@ class BotoServiceName(str, Enum):
     CLOUDFRONT = "cloudfront"
     CLOUDWATCH = "cloudwatch"
     DYNAMODB = "dynamodb"
+    EMR = "emr"
     EVENTBRIDGE = "events"  # boto3 uses "events", not "eventbridge"
+    KAFKA = "kafka"
     KEYSPACES = "keyspaces"
     LAMBDA = "lambda"
     LOGS = "logs"
+    OPENSEARCH = "opensearch"
     RDS = "rds"
     RESOURCE_GROUPS_TAGGING = "resourcegroupstaggingapi"
     S3 = "s3"
@@ -54,6 +57,13 @@ class MetricType(str, Enum):
     NATIVE = "NATIVE"
     CONDITIONAL = "CONDITIONAL"
     NON_NATIVE = "NON-NATIVE"
+
+
+class MskBrokerType(str, Enum):
+    """MSK broker type for provisioned clusters."""
+
+    STANDARD = "STANDARD"
+    EXPRESS = "EXPRESS"
 
 
 class AlarmInputMethod(str, Enum):

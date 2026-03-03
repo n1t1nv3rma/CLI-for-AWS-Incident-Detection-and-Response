@@ -1,0 +1,172 @@
+service_name: "EMR"
+
+templates:
+  - name: "IDR-EMR-IsIdle"
+    service: "EMR"
+    alarm_type: "PERFORMANCE"
+    metric_type: "NATIVE"
+    description: "Detects idle EMR clusters for cost optimization"
+    configuration:
+      AlarmName: "IDR-EMR-IsIdle-${cluster_id}"
+      AlarmDescription: "Detects idle EMR clusters for cost optimization"
+      MetricName: "IsIdle"
+      Namespace: "AWS/ElasticMapReduce"
+      Statistic: "Maximum"
+      Period: 60
+      EvaluationPeriods: 30
+      DatapointsToAlarm: 30
+      Threshold: 1.0
+      ComparisonOperator: "GreaterThanOrEqualToThreshold"
+      TreatMissingData: "notBreaching"
+      Dimensions: [
+        {
+          Name: "JobFlowId",
+          Value: "${cluster_id}"
+        }
+      ]
+    Tags: [
+      {
+        Key: "AlarmType",
+        Value: "IDR-BestPractice"
+      },
+      {
+        Key: "Service",
+        Value: "EMR"
+      }
+    ]
+
+  - name: "IDR-EMR-HDFSUtilization"
+    service: "EMR"
+    alarm_type: "RELIABILITY"
+    metric_type: "NATIVE"
+    description: "Monitors HDFS storage utilization percentage"
+    configuration:
+      AlarmName: "IDR-EMR-HDFSUtilization-${cluster_id}"
+      AlarmDescription: "Monitors HDFS storage utilization percentage"
+      MetricName: "HDFSUtilization"
+      Namespace: "AWS/ElasticMapReduce"
+      Statistic: "Average"
+      Period: 60
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 5
+      Threshold: 80.0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "notBreaching"
+      Dimensions: [
+        {
+          Name: "JobFlowId",
+          Value: "${cluster_id}"
+        }
+      ]
+    Tags: [
+      {
+        Key: "AlarmType",
+        Value: "IDR-BestPractice"
+      },
+      {
+        Key: "Service",
+        Value: "EMR"
+      }
+    ]
+
+  - name: "IDR-EMR-MRUnhealthyNodes"
+    service: "EMR"
+    alarm_type: "RELIABILITY"
+    metric_type: "NATIVE"
+    description: "Monitors unhealthy MapReduce nodes in the cluster"
+    configuration:
+      AlarmName: "IDR-EMR-MRUnhealthyNodes-${cluster_id}"
+      AlarmDescription: "Monitors unhealthy MapReduce nodes in the cluster"
+      MetricName: "MRUnhealthyNodes"
+      Namespace: "AWS/ElasticMapReduce"
+      Statistic: "Maximum"
+      Period: 60
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 5
+      Threshold: 0.0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "notBreaching"
+      Dimensions: [
+        {
+          Name: "JobFlowId",
+          Value: "${cluster_id}"
+        }
+      ]
+    Tags: [
+      {
+        Key: "AlarmType",
+        Value: "IDR-BestPractice"
+      },
+      {
+        Key: "Service",
+        Value: "EMR"
+      }
+    ]
+
+  - name: "IDR-EMR-AppsFailed"
+    service: "EMR"
+    alarm_type: "RELIABILITY"
+    metric_type: "NATIVE"
+    description: "Monitors failed YARN applications in the cluster"
+    configuration:
+      AlarmName: "IDR-EMR-AppsFailed-${cluster_id}"
+      AlarmDescription: "Monitors failed YARN applications in the cluster"
+      MetricName: "AppsFailed"
+      Namespace: "AWS/ElasticMapReduce"
+      Statistic: "Sum"
+      Period: 60
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 5
+      Threshold: 0.0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "notBreaching"
+      Dimensions: [
+        {
+          Name: "JobFlowId",
+          Value: "${cluster_id}"
+        }
+      ]
+    Tags: [
+      {
+        Key: "AlarmType",
+        Value: "IDR-BestPractice"
+      },
+      {
+        Key: "Service",
+        Value: "EMR"
+      }
+    ]
+
+  - name: "IDR-EMR-YARNMemoryAvailablePercentage"
+    service: "EMR"
+    alarm_type: "PERFORMANCE"
+    metric_type: "NATIVE"
+    description: "Monitors available YARN memory percentage for performance optimization"
+    configuration:
+      AlarmName: "IDR-EMR-YARNMemoryAvailablePercentage-${cluster_id}"
+      AlarmDescription: "Monitors available YARN memory percentage for performance optimization"
+      MetricName: "YARNMemoryAvailablePercentage"
+      Namespace: "AWS/ElasticMapReduce"
+      Statistic: "Average"
+      Period: 60
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 5
+      Threshold: 15.0
+      ComparisonOperator: "LessThanThreshold"
+      TreatMissingData: "notBreaching"
+      Dimensions: [
+        {
+          Name: "JobFlowId",
+          Value: "${cluster_id}"
+        }
+      ]
+    Tags: [
+      {
+        Key: "AlarmType",
+        Value: "IDR-BestPractice"
+      },
+      {
+        Key: "Service",
+        Value: "EMR"
+      }
+    ]

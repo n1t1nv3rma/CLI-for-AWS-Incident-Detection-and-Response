@@ -14,10 +14,12 @@ from aws_idr_customer_cli.data_accessors.cloudwatch_metrics_accessor import (
     CloudWatchMetricsAccessor,
 )
 from aws_idr_customer_cli.data_accessors.dynamodb_accessor import DynamoDbAccessor
+from aws_idr_customer_cli.data_accessors.emr_accessor import EmrAccessor
 from aws_idr_customer_cli.data_accessors.eventbridge_accessor import EventBridgeAccessor
 from aws_idr_customer_cli.data_accessors.keyspaces_accessor import KeyspacesAccessor
 from aws_idr_customer_cli.data_accessors.lambda_accessor import LambdaAccessor
 from aws_idr_customer_cli.data_accessors.logs_accessor import LogsAccessor
+from aws_idr_customer_cli.data_accessors.msk_accessor import MskAccessor
 from aws_idr_customer_cli.data_accessors.rds_accessor import RdsAccessor
 from aws_idr_customer_cli.data_accessors.resource_tagging_accessor import (
     ResourceTaggingAccessor,
@@ -34,11 +36,20 @@ from aws_idr_customer_cli.services.create_alarm.alarm_recommendation_service imp
     AlarmRecommendationService,
 )
 from aws_idr_customer_cli.services.create_alarm.alarm_service import AlarmService
+from aws_idr_customer_cli.services.create_alarm.emr_resource_processor import (
+    EmrResourceProcessor,
+)
 from aws_idr_customer_cli.services.create_alarm.lambda_edge_detection_service import (
     LambdaEdgeDetectionService,
 )
 from aws_idr_customer_cli.services.create_alarm.lambda_edge_processor import (
     LambdaEdgeProcessor,
+)
+from aws_idr_customer_cli.services.create_alarm.msk_resource_processor import (
+    MskResourceProcessor,
+)
+from aws_idr_customer_cli.services.create_alarm.opensearch_resource_processor import (
+    OpenSearchResourceProcessor,
 )
 from aws_idr_customer_cli.services.input_module.resource_finder_service import (
     ResourceFinderService,
@@ -49,6 +60,9 @@ from aws_idr_customer_cli.utils.create_alarm.conditional_metric_validator import
 )
 from aws_idr_customer_cli.utils.create_alarm.metric_namespace_validator import (
     MetricNamespaceValidator,
+)
+from aws_idr_customer_cli.utils.create_alarm.threshold_calculator import (
+    ThresholdCalculator,
 )
 from aws_idr_customer_cli.utils.log_handlers import CliLogger
 from aws_idr_customer_cli.utils.validate_alarm.alarm_validator import AlarmValidator
@@ -107,6 +121,7 @@ class ServiceClientsModule(injector.Module):
         rds_accessor: RdsAccessor,
         s3_accessor: S3Accessor,
         keyspaces_accessor: KeyspacesAccessor,
+        msk_accessor: MskAccessor,
     ) -> ConditionalMetricValidator:
         """Provide ConditionalMetricValidator with service-specific accessors."""
         return ConditionalMetricValidator(
@@ -117,6 +132,7 @@ class ServiceClientsModule(injector.Module):
             rds_accessor=rds_accessor,
             s3_accessor=s3_accessor,
             keyspaces_accessor=keyspaces_accessor,
+            msk_accessor=msk_accessor,
         )
 
     @injector.singleton
@@ -157,6 +173,46 @@ class ServiceClientsModule(injector.Module):
 
     @injector.singleton
     @injector.provider
+    def provide_msk_resource_processor(
+        self,
+        logger: CliLogger,
+        ui: InteractiveUI,
+        msk_accessor: MskAccessor,
+    ) -> MskResourceProcessor:
+        return MskResourceProcessor(
+            logger=logger,
+            ui=ui,
+            msk_accessor=msk_accessor,
+        )
+
+    @injector.singleton
+    @injector.provider
+    def provide_opensearch_resource_processor(
+        self,
+        logger: CliLogger,
+        threshold_calculator: ThresholdCalculator,
+    ) -> OpenSearchResourceProcessor:
+        return OpenSearchResourceProcessor(
+            logger=logger,
+            threshold_calculator=threshold_calculator,
+        )
+
+    @injector.singleton
+    @injector.provider
+    def provide_emr_resource_processor(
+        self,
+        logger: CliLogger,
+        ui: InteractiveUI,
+        emr_accessor: EmrAccessor,
+    ) -> EmrResourceProcessor:
+        return EmrResourceProcessor(
+            logger=logger,
+            ui=ui,
+            emr_accessor=emr_accessor,
+        )
+
+    @injector.singleton
+    @injector.provider
     def provide_alarm_recommendation_service(
         self,
         logger: CliLogger,
@@ -165,6 +221,9 @@ class ServiceClientsModule(injector.Module):
         lambda_edge_detection_service: LambdaEdgeDetectionService,
         metrics_accessor: CloudWatchMetricsAccessor,
         lambda_edge_processor: LambdaEdgeProcessor,
+        msk_resource_processor: MskResourceProcessor,
+        emr_resource_processor: EmrResourceProcessor,
+        opensearch_resource_processor: OpenSearchResourceProcessor,
         ui: InteractiveUI,
     ) -> AlarmRecommendationService:
         return AlarmRecommendationService(
@@ -174,6 +233,9 @@ class ServiceClientsModule(injector.Module):
             lambda_edge_detection_service=lambda_edge_detection_service,
             metrics_accessor=metrics_accessor,
             lambda_edge_processor=lambda_edge_processor,
+            msk_resource_processor=msk_resource_processor,
+            emr_resource_processor=emr_resource_processor,
+            opensearch_resource_processor=opensearch_resource_processor,
             ui=ui,
         )
 

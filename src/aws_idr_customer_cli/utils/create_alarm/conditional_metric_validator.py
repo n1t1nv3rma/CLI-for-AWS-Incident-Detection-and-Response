@@ -10,6 +10,7 @@ from aws_idr_customer_cli.data_accessors.alarm_accessor import AlarmAccessor
 from aws_idr_customer_cli.data_accessors.dynamodb_accessor import DynamoDbAccessor
 from aws_idr_customer_cli.data_accessors.keyspaces_accessor import KeyspacesAccessor
 from aws_idr_customer_cli.data_accessors.lambda_accessor import LambdaAccessor
+from aws_idr_customer_cli.data_accessors.msk_accessor import MskAccessor
 from aws_idr_customer_cli.data_accessors.rds_accessor import RdsAccessor
 from aws_idr_customer_cli.data_accessors.s3_accessor import S3Accessor
 from aws_idr_customer_cli.data_accessors.sns_accessor import SnsAccessor
@@ -24,6 +25,7 @@ class AwsService(str, Enum):
     CASSANDRA = "cassandra"  # Keyspaces
     RDS = "rds"
     S3 = "s3"
+    KAFKA = "kafka"
 
 
 class MetricName(str, Enum):
@@ -46,6 +48,22 @@ class MetricName(str, Enum):
     TOTAL_REQUEST_LATENCY = "TotalRequestLatency"
 
 
+MSK_MONITORING_LEVEL_HIERARCHY: Dict[str, int] = {
+    "DEFAULT": 0,
+    "PER_BROKER": 1,
+    "PER_TOPIC_PER_BROKER": 2,
+    "PER_TOPIC_PER_PARTITION": 3,
+}
+
+MSK_METRIC_REQUIRED_LEVEL: Dict[str, str] = {
+    "IAMTooManyConnections": "PER_BROKER",
+}
+
+MSK_IAM_AUTH_REQUIRED_METRICS: set = {
+    "IAMTooManyConnections",
+}
+
+
 class ConditionalMetricValidator:
     """Validates CONDITIONAL metrics using service-specific accessors."""
 
@@ -59,6 +77,7 @@ class ConditionalMetricValidator:
         rds_accessor: RdsAccessor,
         s3_accessor: S3Accessor,
         keyspaces_accessor: KeyspacesAccessor,
+        msk_accessor: MskAccessor,
     ) -> None:
         self.alarm_accessor = alarm_accessor
         self.sns_accessor = sns_accessor
@@ -67,6 +86,7 @@ class ConditionalMetricValidator:
         self.rds_accessor = rds_accessor
         self.s3_accessor = s3_accessor
         self.keyspaces_accessor = keyspaces_accessor
+        self.msk_accessor = msk_accessor
 
     def validate_metric_exists(
         self, metric_name: str, resource_arn: str, region: str
@@ -90,6 +110,8 @@ class ConditionalMetricValidator:
                 return self._validate_rds_metric(metric_name, resource_arn, region)
             elif service == AwsService.S3:
                 return self._validate_s3_metric(metric_name, resource_arn, region)
+            elif service == AwsService.KAFKA:
+                return self._validate_msk_metric(metric_name, resource_arn, region)
 
             self.alarm_accessor.logger.warning(
                 f"Unknown service for CONDITIONAL validation: {service}"
@@ -288,4 +310,85 @@ class ConditionalMetricValidator:
                 )
             return has_metrics
 
+        return False
+
+    def _validate_msk_metric(
+        self, metric_name: str, resource_arn: str, region: str
+    ) -> bool:
+        """Validate MSK CONDITIONAL metrics.
+
+        Checks both monitoring level and IAM auth requirements.
+        """
+        try:
+            requires_level = metric_name in MSK_METRIC_REQUIRED_LEVEL
+            requires_iam = metric_name in MSK_IAM_AUTH_REQUIRED_METRICS
+
+            if not requires_level and not requires_iam:
+                return True
+
+            cluster_info = self.msk_accessor.describe_cluster(resource_arn, region)
+
+            if requires_level:
+                if not self._check_msk_monitoring_level(metric_name, cluster_info):
+                    return False
+
+            if requires_iam:
+                if not self._check_msk_iam_auth(metric_name, cluster_info):
+                    return False
+
+            return True
+        except Exception as e:
+            self.alarm_accessor.logger.warning(
+                f"MSK metric validation failed for " f"'{metric_name}': {str(e)}"
+            )
+            return False
+
+    def _check_msk_monitoring_level(
+        self, metric_name: str, cluster_info: Dict[str, Any]
+    ) -> bool:
+        """Check if MSK cluster monitoring level meets the requirement."""
+        required_level = MSK_METRIC_REQUIRED_LEVEL[metric_name]
+        cluster_level = cluster_info.get("Provisioned", {}).get(
+            "EnhancedMonitoring", "DEFAULT"
+        )
+
+        required_value = MSK_MONITORING_LEVEL_HIERARCHY.get(required_level)
+        cluster_value = MSK_MONITORING_LEVEL_HIERARCHY.get(cluster_level)
+
+        if (
+            cluster_value is not None
+            and required_value is not None
+            and cluster_value >= required_value
+        ):
+            self.alarm_accessor.logger.info(
+                f"MSK monitoring level {cluster_level} meets "
+                f"requirement ({required_level}) for "
+                f"metric '{metric_name}'"
+            )
+            return True
+
+        self.alarm_accessor.logger.warning(
+            f"Metric '{metric_name}' not available - MSK cluster "
+            f"monitoring level is {cluster_level}, "
+            f"requires {required_level}"
+        )
+        return False
+
+    def _check_msk_iam_auth(
+        self, metric_name: str, cluster_info: Dict[str, Any]
+    ) -> bool:
+        """Check if MSK cluster has IAM authentication enabled."""
+        provisioned = cluster_info.get("Provisioned", {})
+        client_auth = provisioned.get("ClientAuthentication", {})
+        iam_enabled = client_auth.get("Iam", {}).get("Enabled", False)
+
+        if iam_enabled:
+            return True
+
+        self.alarm_accessor.logger.warning(
+            f"Metric '{metric_name}' not available - IAM "
+            f"authentication is not enabled on MSK cluster. "
+            f"This metric is only emitted when IAM auth "
+            f"is configured."
+        )
         return False

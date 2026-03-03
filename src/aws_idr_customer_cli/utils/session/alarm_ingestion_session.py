@@ -280,7 +280,7 @@ class AlarmIngestionSession(InteractiveSession):
         if len(eligible_buses) == 1:
             event_bus_arn = eligible_buses[0][1].get("Arn", "")
             if self.ui.prompt_confirm(
-                f"Use this event bus: {event_bus_arn}?", default=True
+                f"Would you like to use this event bus: {event_bus_arn}?", default=True
             ):
                 self._save_apm_ingestion(event_bus_arn)
                 self.ui.display_info("✅ Event bus configured successfully")
@@ -602,7 +602,7 @@ class AlarmIngestionSession(InteractiveSession):
                     self.ui.display_info(f"Alert Identifiers: {identifiers}")
 
         proceed = self.ui.prompt_confirm(
-            "Proceed with this configuration?", default=True
+            "Would you like to proceed with this configuration?", default=True
         )
 
         if not proceed:
@@ -636,7 +636,8 @@ class AlarmIngestionSession(InteractiveSession):
             display_alarm_contact_summary(ui=self.ui, submission=self.submission)
 
         proceed = self.ui.prompt_confirm(
-            "Proceed with ingesting APM alarms into IDR?", default=True
+            "Would you like to proceed with ingesting APM alarms into IDR?",
+            default=True,
         )
 
         if not proceed:
@@ -669,7 +670,9 @@ class AlarmIngestionSession(InteractiveSession):
             "\nℹ️  Next, we'll validate these alarms for noise patterns and suitability. "
             "Validation results will be noted in your ingestion request."
         )
-        proceed = self.ui.prompt_confirm("Proceed to validation?", default=True)
+        proceed = self.ui.prompt_confirm(
+            "Would you like to proceed to validation?", default=True
+        )
 
         if not proceed:
             return {ACTION_KEY: ACTION_BACK}
@@ -746,7 +749,7 @@ class AlarmIngestionSession(InteractiveSession):
             display_alarm_contact_summary(ui=self.ui, submission=self.submission)
 
         proceed = self.ui.prompt_confirm(
-            f"Proceed with ingesting these {alarm_count} alarm(s) into IDR?",
+            f"Would you like to proceed with ingesting these {alarm_count} alarm(s) into IDR?",
             default=True,
         )
 

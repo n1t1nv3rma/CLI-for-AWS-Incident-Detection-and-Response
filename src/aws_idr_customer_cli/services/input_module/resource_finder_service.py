@@ -16,9 +16,6 @@ from aws_idr_customer_cli.interfaces.resource_finder_service import (
 )
 from aws_idr_customer_cli.utils.arn_utils import build_resource_arn_object
 from aws_idr_customer_cli.utils.mlo_adapter import MloAdapter
-from aws_idr_customer_cli.utils.resource_filtering.functional_resource_config import (
-    FUNCTIONAL_RESOURCE_TYPES,
-)
 from aws_idr_customer_cli.utils.session.interactive_session import STYLE_BLUE
 
 # Constants for tag field names
@@ -35,11 +32,11 @@ class ResourceFinderService(ResourceFinderServiceInterface):
         self.accessor = accessor
         self.ui = ui
 
-    def find_functional_resources_by_tag(
+    def find_all_resources_by_tag(
         self, tag_key: str, tag_value: str, regions: List[str]
     ) -> List[Dict[str, Any]]:
         """
-        Find functional resources by tag key and value.
+        Find all resources by tag key and value.
 
         Args:
             tag_key: The tag key to search for
@@ -47,22 +44,19 @@ class ResourceFinderService(ResourceFinderServiceInterface):
             regions: List of regions to search
 
         Returns:
-            List of parsed functional resources with ResourceArn objects and
+            List of parsed resources with ResourceArn objects and
             validated tags
         """
         tag_filters = [{"Key": tag_key, "Values": tag_value}]
-        return self.find_functional_resources_by_tags(tags=tag_filters, regions=regions)
+        return self.find_all_resources_by_tags(tags=tag_filters, regions=regions)
 
-    def find_functional_resources_by_tags(
+    def find_all_resources_by_tags(
         self, tags: List[Dict[str, str]], regions: List[str]
     ) -> List[Dict[str, Any]]:
         """
         Find functional resources by multiple tags.
 
-        Only returns resources that are classified as functional (e.g., EC2
-        instances, Lambda functions) and excludes non-functional resources
-        (e.g., IAM roles, security groups) that are not relevant for workload
-        monitoring.
+        Returns all resources that can be found by tags
 
         Args:
             tags: List of tag filters to search for
@@ -72,13 +66,13 @@ class ResourceFinderService(ResourceFinderServiceInterface):
             List of parsed functional resources with ResourceArn objects and
             validated tags
         """
-        return self.find_resources_by_tags(tags, regions, FUNCTIONAL_RESOURCE_TYPES)
+        return self.find_resources_by_tags(tags, regions)
 
     def find_resources_by_tags(
         self,
         tags: List[Dict[str, str]],
         regions: List[str],
-        resource_types: List[str],
+        resource_types: Optional[List[str]] = None,
         resource_label: str = "resources",
     ) -> List[Dict[str, Any]]:
         """

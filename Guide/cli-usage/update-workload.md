@@ -130,7 +130,7 @@ Review Update Request
 │ Escalation Email: ec@example.com                                                        │
 │ Escalation Phone: (not provided)                                                        │
 ╰─────────────────────────────────────────────────────────────────────────────────────────╯
-→ Submit this update request? [y/n] (y):
+→ Would you like to submit this update request? (y):
 
 📤 Submitting update request...
 ╭──────────────────────────────── 📋 Support Case Created ────────────────────────────────╮
@@ -188,7 +188,7 @@ How would you like to specify tags?:
 → Enter your choice (1-2) : 1
 → Tag key (Application) : Owner
 → Tag value: CLI
-→ Would you like to proceed with Owner=['CLI']? [y/n] (y):
+→ Would you like to proceed with Owner=['CLI']? (y):
 
 🔍 Searching for CloudWatch alarms...
 
@@ -209,7 +209,7 @@ Review Update Request
 │ 'arn:aws:cloudwatch:us-east-1:123456789012:alarm:TestAlarm-3',                          │
 │ 'arn:aws:cloudwatch:us-east-1:123456789012:alarm:TestAlarm-4']                          │
 ╰─────────────────────────────────────────────────────────────────────────────────────────╯
-→ Submit this update request? [y/n] (y):
+→ Would you like to submit this update request? (y):
 
 📤 Submitting update request...
 ╭──────────────────────────────── 📋 Support Case Created ────────────────────────────────╮

@@ -13,8 +13,9 @@ class AlarmRecommendation:
     alarm_description: str
     metric_name: Optional[str]  # Optional for math expression alarms
     namespace: Optional[str]  # Optional for math expression alarms
-    statistic: Optional[str]  # Optional for math expression alarms
-    threshold: float
+    statistic: Optional[str]  # Optional for math expression alarms or ExtendedStatistic
+    extended_statistic: Optional[str]  # For percentile metrics (e.g., p90)
+    threshold: Optional[float]  # Optional[float] to handle 0.0 threshold
     comparison_operator: str
     evaluation_periods: int
     period: int
@@ -35,14 +36,15 @@ class AlarmRecommendation:
         "metric_name": {"cw_key": "MetricName", "order": 3},
         "namespace": {"cw_key": "Namespace", "order": 4},
         "statistic": {"cw_key": "Statistic", "order": 5},
-        "period": {"cw_key": "Period", "order": 6},
-        "evaluation_periods": {"cw_key": "EvaluationPeriods", "order": 7},
-        "datapoints_to_alarm": {"cw_key": "DatapointsToAlarm", "order": 8},
-        "threshold": {"cw_key": "Threshold", "order": 9},
-        "comparison_operator": {"cw_key": "ComparisonOperator", "order": 10},
-        "treat_missing_data": {"cw_key": "TreatMissingData", "order": 11},
-        "dimensions": {"cw_key": "Dimensions", "order": 12},
-        "metrics": {"cw_key": "Metrics", "order": 13},
+        "extended_statistic": {"cw_key": "ExtendedStatistic", "order": 6},
+        "period": {"cw_key": "Period", "order": 7},
+        "evaluation_periods": {"cw_key": "EvaluationPeriods", "order": 8},
+        "datapoints_to_alarm": {"cw_key": "DatapointsToAlarm", "order": 9},
+        "threshold": {"cw_key": "Threshold", "order": 10},
+        "comparison_operator": {"cw_key": "ComparisonOperator", "order": 11},
+        "treat_missing_data": {"cw_key": "TreatMissingData", "order": 12},
+        "dimensions": {"cw_key": "Dimensions", "order": 13},
+        "metrics": {"cw_key": "Metrics", "order": 14},
     }
 
     # Fields to exclude for math expression alarms
@@ -50,6 +52,7 @@ class AlarmRecommendation:
         "metric_name",
         "namespace",
         "statistic",
+        "extended_statistic",
         "dimensions",
         "period",
     }

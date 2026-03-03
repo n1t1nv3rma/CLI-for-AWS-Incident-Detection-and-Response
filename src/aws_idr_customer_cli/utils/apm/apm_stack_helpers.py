@@ -1,5 +1,6 @@
 """Helper functions for CloudFormation stack resource extraction and processing."""
 
+import re
 from typing import Dict, Optional
 
 from aws_idr_customer_cli.data_accessors.cloudformation_accessor import (
@@ -32,9 +33,7 @@ def extract_stack_resources(
             if "ApiGateway::RestApi" in resource_type:
                 api_id = physical_id
             elif "SecretsManager::Secret" in resource_type and physical_id:
-                secret_name = (
-                    physical_id.split(":")[-1] if ":" in physical_id else physical_id
-                )
+                secret_name = _extract_secret_name(physical_id)
             elif (
                 "EventBridge::EventBus" in resource_type
                 or "Events::EventBus" in resource_type
@@ -63,11 +62,23 @@ def _build_webhook_url(api_id: str, region: str, stack_name: str) -> str:
     Build webhook URL from API Gateway components.
 
     """
-    stage_name = f"{stack_name.replace('IDR-', '')}-Stage-Prod"
+    stage_name = f"{stack_name.replace('-IntegrationForIDR', '')}-Stage-Prod"
     return (
         f"https://{api_id}.execute-api.{region}"
         f".amazonaws.com/{stage_name}/APIGWResourcesforAPM"
     )
+
+
+def _extract_secret_name(physical_id: str) -> str:
+    """
+    Extract the logical secret name from a CloudFormation physical resource ID.
+
+    CloudFormation appends a random 6-character alphanumeric suffix (e.g., -tFfNaG)
+    to the secret name in the ARN. This suffix is not part of the actual secret name
+    stored in Secrets Manager.
+    """
+    raw_name = physical_id.split(":")[-1] if ":" in physical_id else physical_id
+    return re.sub(r"-[A-Za-z0-9]{6}$", "", raw_name)
 
 
 def _format_eventbus_arn(physical_id: str, region: str, account_id: str) -> str:

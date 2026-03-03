@@ -11,6 +11,9 @@ from aws_idr_customer_cli.services.file_cache.data import ResourceArn
 from aws_idr_customer_cli.utils.constants import DEFAULT_REGION, ItemType
 from aws_idr_customer_cli.utils.mlo import MloSelectionManager
 from aws_idr_customer_cli.utils.mlo_adapter import MloAdapter
+from aws_idr_customer_cli.utils.resource_filtering.monitorable_resource_config import (
+    MONITORABLE_RESOURCE_TYPES,
+)
 from aws_idr_customer_cli.utils.session.interactive_session import (
     ACTION_BACK,
     ACTION_KEY,
@@ -87,6 +90,36 @@ def discover_resources_by_tags(
     return (resource_arns, tag_filters)
 
 
+def exclude_non_monitorable_resources(
+    resourceArns: List[ResourceArn],
+) -> List[ResourceArn]:
+    """Filter resources to only include those in the monitorable resource list.
+
+    Args:
+        resourceArns: List of ResourceArn objects to filter
+
+    Returns:
+        List of ResourceArn objects that are in the monitorable resource types
+    """
+    filtered_resources = []
+    for resource_arn in resourceArns:
+        resource_type = resource_arn.type
+
+        # Check if resource type is in monitorable list
+        if resource_type in MONITORABLE_RESOURCE_TYPES:
+            filtered_resources.append(resource_arn)
+        # Handle resources without explicit resource-type (s3, sns, sqs)
+        # These have type as just the service name, so we need to check
+        # if any monitorable resource type starts with "service:"
+        elif any(
+            func_type.startswith(f"{resource_type}:")
+            for func_type in MONITORABLE_RESOURCE_TYPES
+        ):
+            filtered_resources.append(resource_arn)
+
+    return filtered_resources
+
+
 def select_resources(
     ui: InteractiveUI,
     resource_arns: List[ResourceArn],
@@ -143,7 +176,7 @@ def select_resources(
 
     if selected_count == 0 and not continue_with_none:
         proceed = ui.prompt_confirm(
-            "No resources selected. Do you want to continue anyway?", False
+            "No resources selected. Would you like to continue anyway?", False
         )
         if not proceed:
             return {ACTION_KEY: ACTION_RETRY}
@@ -210,7 +243,7 @@ def select_alarms(
 
     if selected_count == 0 and not continue_with_none:
         proceed = ui.prompt_confirm(
-            "No alarms selected. Do you want to continue anyway?", False
+            "No alarms selected. Would you like to continue anyway?", False
         )
         if not proceed:
             return {ACTION_KEY: ACTION_RETRY}
@@ -312,19 +345,19 @@ def _collect_arns_from_file(
 
         except FileNotFoundError:
             ui.display_error(f"File not found: {file_path}")
-            retry = ui.prompt_confirm("Try a different file?", True)
+            retry = ui.prompt_confirm("Would you like to try a different file?", True)
             if not retry:
                 return {ACTION_KEY: ACTION_BACK}
 
         except PermissionError:
             ui.display_error(f"Permission denied reading file: {file_path}")
-            retry = ui.prompt_confirm("Try a different file?", True)
+            retry = ui.prompt_confirm("Would you like to try a different file?", True)
             if not retry:
                 return {ACTION_KEY: ACTION_BACK}
 
         except Exception as e:
             ui.display_error(f"Error reading file: {str(e)}")
-            retry = ui.prompt_confirm("Try again?", True)
+            retry = ui.prompt_confirm("Would you like to try again?", True)
             if not retry:
                 return {ACTION_KEY: ACTION_BACK}
 

@@ -22,7 +22,10 @@ class AwsServices(Enum):
     """AWS service names as enum for type safety and auto-completion."""
 
     ATHENA = "athena"
+    EMR = "emr"
     KINESIS = "kinesis"
+    MSK = "msk"
+    OPENSEARCH = "opensearch"
 
     EVENTBRIDGE = "eventbridge"
     SNS = "sns"
@@ -49,6 +52,8 @@ class AwsServices(Enum):
 
     ALB = "alb"
     APIGATEWAY = "apigateway"
+    APIGATEWAY_HTTP = "apigateway_http"
+    APIGATEWAY_WEBSOCKET = "apigateway_websocket"
     CLOUDFRONT = "cloudfront"
     DIRECTCONNECT = "directconnect"
     NETWORKFIREWALL = "networkfirewall"
@@ -88,10 +93,25 @@ class ProjectDirectories:
 # AWS Service Configuration - Using enum keys directly
 AWS_SERVICE_CONFIG: Dict[AwsServices, Dict[str, Any]] = {
     # Analytics Services
+    AwsServices.EMR: {
+        "template_file": "idr_alarm_templates/emr.yaml",
+        "description": "Amazon Elastic MapReduce",
+        "arn_patterns": ["cluster"],
+    },
     AwsServices.KINESIS: {
         "template_file": "idr_alarm_templates/kinesis.yaml",
         "description": "Amazon Kinesis",
         "arn_patterns": ["stream"],
+    },
+    AwsServices.MSK: {
+        "template_file": "idr_alarm_templates/msk.yaml",
+        "description": "Amazon Managed Streaming for Apache Kafka",
+        "arn_patterns": ["cluster"],
+    },
+    AwsServices.OPENSEARCH: {
+        "template_file": "idr_alarm_templates/opensearch.yaml",
+        "description": "Amazon OpenSearch Service",
+        "arn_patterns": ["domain"],
     },
     # Application Integration Services
     AwsServices.EVENTBRIDGE: {
@@ -187,8 +207,18 @@ AWS_SERVICE_CONFIG: Dict[AwsServices, Dict[str, Any]] = {
     },
     AwsServices.APIGATEWAY: {
         "template_file": "idr_alarm_templates/apigateway.yaml",
-        "description": "Amazon API Gateway",
-        "arn_patterns": ["restapis", "apis"],
+        "description": "Amazon API Gateway REST",
+        "arn_patterns": ["restapis"],
+    },
+    AwsServices.APIGATEWAY_HTTP: {
+        "template_file": "idr_alarm_templates/apigateway_http.yaml",
+        "description": "Amazon API Gateway HTTP",
+        "arn_patterns": ["apis"],
+    },
+    AwsServices.APIGATEWAY_WEBSOCKET: {
+        "template_file": "idr_alarm_templates/apigateway_websocket.yaml",
+        "description": "Amazon API Gateway WebSocket",
+        "arn_patterns": ["apis"],
     },
     AwsServices.CLOUDFRONT: {
         "template_file": "idr_alarm_templates/cloudfront.yaml",
@@ -233,7 +263,10 @@ ARN_SERVICE_NAME_MAPPING: Dict[str, str] = {
     "cassandra": AwsServices.KEYSPACES.value,
     "elasticfilesystem": AwsServices.EFS.value,
     "elasticloadbalancing": AwsServices.ALB.value,
+    "elasticmapreduce": AwsServices.EMR.value,
+    "es": AwsServices.OPENSEARCH.value,
     "events": AwsServices.EVENTBRIDGE.value,
+    "kafka": AwsServices.MSK.value,
     "medialive": AwsServices.MEDIALIVE.value,
     "mediapackage": AwsServices.MEDIAPACKAGE.value,
     "states": AwsServices.STEPFUNCTIONS.value,
@@ -242,8 +275,17 @@ ARN_SERVICE_NAME_MAPPING: Dict[str, str] = {
 # ARN Resource Identifier Extraction Rules - Using enum keys directly
 ARN_EXTRACTION_RULES: Dict[AwsServices, Dict[str, str]] = {
     # Analytics Services
+    AwsServices.EMR: {
+        "cluster": "cluster_id",
+    },
     AwsServices.KINESIS: {
         "stream": "stream_name",
+    },
+    AwsServices.MSK: {
+        "cluster": "cluster_name",
+    },
+    AwsServices.OPENSEARCH: {
+        "domain": "domain_name",
     },
     # Application Integration Services
     AwsServices.EVENTBRIDGE: {
@@ -318,7 +360,16 @@ ARN_EXTRACTION_RULES: Dict[AwsServices, Dict[str, str]] = {
     },
     AwsServices.APIGATEWAY: {
         "api_id": "api_id",
+        "api_name": "api_name",
         "stage": "stage_name",
+    },
+    AwsServices.APIGATEWAY_HTTP: {
+        "api_id": "api_id",
+        "api_name": "api_name",
+    },
+    AwsServices.APIGATEWAY_WEBSOCKET: {
+        "api_id": "api_id",
+        "api_name": "api_name",
     },
     AwsServices.CLOUDFRONT: {
         "distribution": "distribution_id",

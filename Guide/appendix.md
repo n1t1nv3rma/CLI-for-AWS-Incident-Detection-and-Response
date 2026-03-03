@@ -7,9 +7,9 @@ A typical local cache file name looks like idr-cx-cli_20250805163942882934.enc
 These cache files are encrypted and not meant to be edited or accessed directly.
 Cache file names are consistent with the session numbers. So in this example, you can resume session from that specific cache by executing with flag --resume idr-cx-cli_20250805163942882934 
 
-## Resources IDR Customer CLI does not onboard
+## Resources IDR Customer CLI does not create alarms for
 
-If you find resources count to be less than expected when doing AWS Resource Discovery, it is likely because they are in the category considered as non-functional resources. The CLI will not create alarms for these resources and will not display them to you. For the complete list of functional and non-functional resources, see [functional_resource_config.py](../src/aws_idr_customer_cli/utils/resource_filtering/functional_resource_config.py).
+If you find resources count to be less than expected when doing IDR Alarm Creation, it is likely because they are in the category considered as non-monitorable resources. The CLI will not create alarms for these resources and but will still display them to you. For the complete list of monitorable resources, see [monitorable_resource_config.py](../src/aws_idr_customer_cli/utils/resource_filtering/monitorable_resource_config.py).
 
 ## Conditional Metrics
 
@@ -26,6 +26,7 @@ Some CloudWatch metrics are only available when specific configurations are enab
 | S3 | TotalRequestLatency | Request Metrics | Enable request metrics on the S3 bucket |
 | SNS | NumberOfNotificationsFilteredOut-* | Filter Policy | Configure a filter policy on SNS subscriptions |
 | SNS | NumberOfNotificationsRedrivenToDlq | Redrive Policy (DLQ) | Configure a redrive policy on SNS subscriptions |
+| MSK | IAMTooManyConnections | IAM Authentication + PER_BROKER monitoring level | Enable IAM auth in cluster security settings; set Enhanced Monitoring to at least PER_BROKER |
 
 ### Resolving Conditional Metric Warnings
 
@@ -255,3 +256,38 @@ Example for Dynatrace:
 |---------------------|-------------|-----------|-------------|--------------------|-----------------------|-----------|---------------------------------|----------|
 | RELIABILITY | VPC Transit Gateway | AWS/TransitGateway | BytesDropCountBlackhole | Reactive | Native | > 1000000.0 | Statistic = Sum<br>Period = 60 seconds<br>DatapointsToAlarm = 5<br>TreatMissingData = breaching | Number of bytes dropped because they matched a blackhole route |
 | RELIABILITY | VPC Transit Gateway | AWS/TransitGateway | BytesDropCountNoRoute | Reactive | Native | > 1000000.0 | Statistic = Sum<br>Period = 60 seconds<br>DatapointsToAlarm = 5<br>TreatMissingData = breaching | Number of bytes dropped because they did not match a route |
+
+### EMR
+
+| Business Objectives | AWS Service | Namespace | Metric name | Reactive/Proactive | Metric Classification | Threshold | Recommended alarm configuration | Use case |
+|---------------------|-------------|-----------|-------------|--------------------|-----------------------|-----------|---------------------------------|----------|
+| PERFORMANCE | EMR | AWS/ElasticMapReduce | IsIdle | Reactive | Native | >= 1.0 | Statistic = Maximum<br>Period = 60 seconds<br>DatapointsToAlarm = 30<br>TreatMissingData = notBreaching | Detects idle EMR clusters for cost optimization |
+| RELIABILITY | EMR | AWS/ElasticMapReduce | HDFSUtilization | Reactive | Native | > 80.0 | Statistic = Average<br>Period = 60 seconds<br>DatapointsToAlarm = 5<br>TreatMissingData = notBreaching | Monitors HDFS storage utilization percentage |
+| RELIABILITY | EMR | AWS/ElasticMapReduce | MRUnhealthyNodes | Reactive | Native | > 0.0 | Statistic = Maximum<br>Period = 60 seconds<br>DatapointsToAlarm = 5<br>TreatMissingData = notBreaching | Monitors unhealthy MapReduce nodes in the cluster |
+| RELIABILITY | EMR | AWS/ElasticMapReduce | AppsFailed | Reactive | Native | > 0.0 | Statistic = Sum<br>Period = 60 seconds<br>DatapointsToAlarm = 5<br>TreatMissingData = notBreaching | Monitors failed YARN applications in the cluster |
+| PERFORMANCE | EMR | AWS/ElasticMapReduce | YARNMemoryAvailablePercentage | Proactive | Native | < 15.0 | Statistic = Average<br>Period = 60 seconds<br>DatapointsToAlarm = 5<br>TreatMissingData = notBreaching | Monitors available YARN memory percentage for performance optimization |
+
+**Note:** The CLI automatically skips alarm creation for terminated clusters (TERMINATED, TERMINATED_WITH_ERRORS, TERMINATING) and transient clusters (AutoTerminate=true) since alarms for these would never fire or would be short-lived.
+
+### MSK
+
+| Business Objectives | AWS Service | Namespace | Metric name | Reactive/Proactive | Metric Classification | Threshold | Recommended alarm configuration | Use case |
+|---------------------|-------------|-----------|-------------|--------------------|-----------------------|-----------|---------------------------------|----------|
+| PERFORMANCE | MSK | AWS/Kafka | CpuUser + CpuSystem | Reactive | Native | > 60.0 | Period = 60 seconds<br>DatapointsToAlarm = 5<br>TreatMissingData = notBreaching | Monitors total CPU utilization (math expression) for MSK brokers. Per-broker alarm. |
+| PERFORMANCE | MSK | AWS/Kafka | HeapMemoryAfterGC | Reactive | Native | > 60.0 | Statistic = Average<br>Period = 60 seconds<br>DatapointsToAlarm = 5<br>TreatMissingData = notBreaching | Monitors heap memory usage after garbage collection. Per-broker alarm. |
+| RELIABILITY | MSK | AWS/Kafka | UnderMinIsrPartitionCount | Reactive | Native | > 0.0 | Statistic = Maximum<br>Period = 60 seconds<br>DatapointsToAlarm = 5<br>TreatMissingData = notBreaching | Monitors partitions where in-sync replicas are below minimum. Per-broker alarm. |
+| RELIABILITY | MSK | AWS/Kafka | OfflinePartitionsCount | Reactive | Native | > 0.0 | Statistic = Maximum<br>Period = 60 seconds<br>DatapointsToAlarm = 5<br>TreatMissingData = notBreaching | Monitors offline partitions in the cluster. Cluster-level alarm. |
+| RELIABILITY | MSK | AWS/Kafka | ActiveControllerCount | Reactive | Native | < 1.0 | Statistic = Sum<br>Period = 60 seconds<br>DatapointsToAlarm = 5<br>TreatMissingData = notBreaching | Monitors active controllers (should always be 1). Cluster-level alarm. |
+| RELIABILITY | MSK | AWS/Kafka | IAMTooManyConnections | Reactive | Conditional | > 0.0 | Statistic = Sum<br>Period = 60 seconds<br>DatapointsToAlarm = 5<br>TreatMissingData = notBreaching | Monitors when clients exceed IAM authentication connection limits. Per-broker alarm. Requires IAM auth enabled and PER_BROKER monitoring level. |
+
+**Note:** The CLI discovers broker IDs and creates individual alarms per broker for broker-level metrics. MSK Serverless clusters are automatically detected and skipped.
+
+### OpenSearch
+
+| Business Objectives | AWS Service | Namespace | Metric name | Reactive/Proactive | Metric Classification | Threshold | Recommended alarm configuration | Use case |
+|---------------------|-------------|-----------|-------------|--------------------|-----------------------|-----------|---------------------------------|----------|
+| RELIABILITY | OpenSearch | AWS/ES | ClusterStatus.red | Reactive | Native | >= 1.0 | Statistic = Maximum<br>Period = 60 seconds<br>DatapointsToAlarm = 5<br>TreatMissingData = notBreaching | Monitors cluster status red indicating primary shards are unavailable |
+| PERFORMANCE | OpenSearch | AWS/ES | FreeStorageSpace | Proactive | Native | Dynamic (25% of EBS volume in MiB) | Statistic = Minimum<br>Period = 60 seconds<br>DatapointsToAlarm = 5<br>TreatMissingData = notBreaching | Monitors available disk space. Threshold is dynamically set to 25% of the domain's EBS volume size. |
+| RELIABILITY | OpenSearch | AWS/ES | ClusterIndexWritesBlocked | Reactive | Native | >= 1.0 | Statistic = Maximum<br>Period = 60 seconds<br>DatapointsToAlarm = 5<br>TreatMissingData = notBreaching | Monitors when the cluster is blocking write requests |
+
+**Note:** The FreeStorageSpace threshold is dynamically calculated based on the domain's EBS volume size. If EBS is not enabled (instance storage) or the domain configuration cannot be read, this alarm is skipped.

@@ -55,12 +55,15 @@ from aws_idr_customer_cli.utils.apm.apm_constants import (
     APM_WEBHOOK_VALIDATION_NOTE,
     CONFIG_MODIFY_APM_PROVIDER,
     CONFIG_MODIFY_DEPLOYMENT_REGION,
+    GRAFANA_OSS_DOCS_VERSION_DISCLAIMER,
+    GRAFANA_OSS_WEBHOOK_SETUP_INSTRUCTIONS,
     SESSION_STEP_INDEX_NEXT_STEPS,
     SESSION_STEP_INDEX_SELECT_PROVIDER,
     SESSION_STEP_INDEX_SELECT_REGION,
     VALIDATION_EXTENDED_WAIT_MINUTES,
     VALIDATION_POLL_INTERVAL,
     ApmDocumentationUrls,
+    ApmProvider,
     IntegrationType,
     ValidationStatus,
 )
@@ -469,7 +472,8 @@ class ApmSetupSession(InteractiveSession):
         self.ui.display_info(f"  • Provider: {provider}")
 
         result = self.ui.prompt_confirm(
-            "⚠️  This will create AWS resources. Proceed with deployment?", default=True
+            "⚠️  This will create AWS resources. Would you like to proceed with deployment?",
+            default=True,
         )
         return bool(result)
 
@@ -667,6 +671,9 @@ class ApmSetupSession(InteractiveSession):
         doc_url = ApmDocumentationUrls.get_provider_docs(provider)
         self.ui.display_info(f"\n📖 Documentation: {doc_url}")
 
+        if provider == ApmProvider.GRAFANA_OSS.value:
+            self.ui.display_info(GRAFANA_OSS_DOCS_VERSION_DISCLAIMER)
+
         self.ui.display_info(
             APM_WEBHOOK_RESUME_MESSAGE.format(session_id=self.session_id)
         )
@@ -683,13 +690,37 @@ class ApmSetupSession(InteractiveSession):
         self, webhook_url: Optional[str], secret_name: Optional[str]
     ) -> None:
         """Display provider-specific webhook configuration instructions."""
-        for line in APM_WEBHOOK_SETUP_INSTRUCTIONS:
-            self.ui.display_info(line)
-            if "3. Create a new webhook notification:" in line:
-                if webhook_url:
-                    self.ui.display_info(f"     • URL: {webhook_url}")
-                if secret_name:
-                    self.ui.display_info("     • Add HTTP Header: authorizationToken")
-                    self.ui.display_info(
-                        "     • Header Value: [Token from Secrets Manager]"
+        is_grafana_oss = (
+            self.submission.apm_setup.provider == ApmProvider.GRAFANA_OSS.value
+        )
+
+        if is_grafana_oss:
+            token_instructions = (
+                f"the token from Secrets Manager → {secret_name}"
+                if secret_name
+                else "the token from Secrets Manager"
+            )
+            for line in GRAFANA_OSS_WEBHOOK_SETUP_INSTRUCTIONS:
+                self.ui.display_info(
+                    line.format(
+                        webhook_url=webhook_url or "<webhook URL>",
+                        token_instructions=token_instructions,
                     )
+                )
+            self.ui.display_info(
+                "\n  ℹ️  Grafana sends its standard alert notification JSON payload "
+                "automatically — no custom payload configuration is needed."
+            )
+        else:
+            for line in APM_WEBHOOK_SETUP_INSTRUCTIONS:
+                self.ui.display_info(line)
+                if "3. Create a new webhook notification:" in line:
+                    if webhook_url:
+                        self.ui.display_info(f"     • URL: {webhook_url}")
+                    if secret_name:
+                        self.ui.display_info(
+                            "     • Add HTTP Header: authorizationToken"
+                        )
+                        self.ui.display_info(
+                            "     • Header Value: [Token from Secrets Manager]"
+                        )

@@ -166,7 +166,9 @@ class CreateAlarm(CommandBase):
 
         return cast(
             bool,
-            self.ui.prompt_confirm("Continue with existing session?", default=True),
+            self.ui.prompt_confirm(
+                "Would you like to resume your session?", default=True
+            ),
         )
 
     @staticmethod
@@ -293,7 +295,7 @@ class CreateAlarm(CommandBase):
                 "that are ready for alarm creation \n"
             )
             if self.ui.prompt_confirm(
-                "Proceed with alarm creation for pre-existing workloads?",
+                "Would you like to proceed with alarm creation for pre-existing workloads?",
                 default=True,
             ):
                 session = self._create_alarm_session(resume_session_id=None)

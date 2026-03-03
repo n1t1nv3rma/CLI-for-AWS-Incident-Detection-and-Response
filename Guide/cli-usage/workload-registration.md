@@ -17,7 +17,7 @@ You will then have the option to review and edit this information.
 The CLI performs automated resource discovery using tags. The CLI will prompt you for tag information during resource discovery.This tag information is used to identify the specific AWS resources to be onboarded. There are two ways to provide single/multiple tags. Note that if you want to specify specifically which ARNs IDR should monitor, without using tags, [you can accomplish this in unattended mode](../unattended-mode.md)
 
 ```
-Step 4/7: Discover Eligible Resources
+Step 3/6: Discover Eligible Resources
 
 Resource Discovery
 ──────────────────
@@ -54,9 +54,6 @@ Total resource view
 ───────────────────
 
 Discovered 29 eligible resources in 2 regions.
-
-NOTE: Resources not eligible for monitoring like IAM roles, security 
-groups, and subnets are excluded.
 
 What would you like to do?:
   1 → Select all 29 resources in 1 regions and proceed to submitting your workload onboarding information
@@ -135,11 +132,49 @@ What would you like to do?:
 1 → Select all 4 resources and go back to "Regional view"
 2 → Deselect all 4 resources
 3 → Accept current resource selection (0 of 4 resources selected) and go back to "Regional view"
-4 → Review individual resources and customize selection
-→ Enter number (1-4): 4 
+4 → Review resources group by service and customize selection
+5 → Review individual resources and customize selection
+→ Enter number (1-5): 4 
 ```
 
-From there, you can use ‘Select all’ option to select all resources and go back to ‘Regional view’. You can use option 3 to accept current selection and go back to ‘Regional view’, but since there is no currently selected resources, you may want to review resource details with option 4:
+From there, you can use ‘Select all’ option to select all resources and go back to ‘Regional view’. You can use option 3 to accept current selection and go back to ‘Regional view’, you can also to review resource details with option 5
+
+If you want to narrow down resources by service before reviewing individual resources, choose 'Review resources group by service and customize selection' (Option 4). This allows you to select specific services and then review only the resources for those services:
+
+```
+Resource Selection
+──────────────────
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────
+Regional view > Resource group view in us-west-2 region > Service Group view in us-west-2 region
+──────────────────────────────────────────────────────────────────────────────────────────────────────
+
+To change region, use 'Accept and go back' option
+
+Resource list in us-west-2 region:
+Item details:
+1: apigateway: (1 resources) - not selected
+    Region: us-west-2 
+2: elasticloadbalancing:(1 resources) - not selected
+    Region: us-west-2 
+3: lambda:function: (2 resources)  - not selected
+    Region: us-west-2
+
+Currently selected: 0 of 3 services
+
+
+What would you like to do?:
+  1-3 → Mark service as selected by number
+  4 → Deselect all
+  5 → Accept current service selection (0 selected of 3) and go ahead to review individual resources and customize selection
+  6 → Select all resources for the selected service (0 selected of 3) and go back to "Resource group view in us-west-2 region"
+→ Enter your choice (1,3 or 1-3 or 1,3-5, select range: 1-3): 1-3  
+
+```
+
+Here you can use number 1-3 to select each individual service. It can be specific numbers: 1,3 (select service 1, 3), ranges: 1-3 (select services 1 through 4) or combined.
+
+You can choose to select all services by entering 1-3/1,2,3, and choose option 5 to review resource details.
 
 ```
 Resource Selection
@@ -207,7 +242,7 @@ All you need to do to register your workload with IDR is provide a name, the reg
 The CLI creates a new support case on your behalf for workload information ingestion. There will be a confirmation message:
 
 ```
-→ Are you ready to submit the workload with the above information and create a support case? [y/n] (y): y
+→ Would you like to submit the workload with the above information and create a support case? (y):
 
 ✅ A support case has been created
 ```

@@ -22,11 +22,12 @@ awsidr register-workload
 * Workload Information Collection
     * Collect workload name/region
 * Tag-based Resource Discovery
+    * Tag-based discovery is automatically used (only supported method)
     * Collect AWS resource tag information
     * Filter available AWS resources for alarm creation based on tag information
 * Resource Selection
     * User selects specific AWS resources from each region and each resource type
-    * IDR CLI will generate alarm recommendations base on these resources
+    * IDR CLI will generate alarm recommendations based on these resources
 * Support Case Creation
     * IDR CLI creates a support case and attaches collected workload information
 * Alarm Contact Information Collection

@@ -356,6 +356,7 @@ class AlarmService:
                     metric_name=template_config.get("MetricName"),
                     namespace=template_config.get("Namespace"),
                     statistic=template_config.get("Statistic"),
+                    extended_statistic=template_config.get("ExtendedStatistic"),
                     threshold=template_config.get("Threshold"),
                     comparison_operator=template_config.get("ComparisonOperator"),
                     evaluation_periods=template_config.get("EvaluationPeriods", 2),
@@ -379,19 +380,29 @@ class AlarmService:
                     required_params = ["threshold", "comparison_operator"]
                 else:
                     # For simple metric alarms, require the traditional fields
+                    # Note: statistic OR extended_statistic is required (not both)
                     required_params = [
                         "metric_name",
                         "namespace",
-                        "statistic",
                         "threshold",
                         "comparison_operator",
                     ]
 
+                # Check for missing required params using `is None` to handle falsy values
+                # like threshold=0.0
                 missing_params = [
                     param
                     for param in required_params
-                    if not getattr(recommendation, param, None)
+                    if getattr(recommendation, param, None) is None
                 ]
+
+                # For simple metric alarms, check that either statistic or extended_statistic
+                # is provided (CloudWatch API accepts one or the other)
+                if not has_metrics:
+                    has_statistic = recommendation.statistic is not None
+                    has_extended = recommendation.extended_statistic is not None
+                    if not has_statistic and not has_extended:
+                        missing_params.append("statistic or extended_statistic")
 
                 if missing_params:
                     self.logger.error(

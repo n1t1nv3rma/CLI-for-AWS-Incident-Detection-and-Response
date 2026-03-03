@@ -32,7 +32,7 @@ Review the collected workload information and make changes if needed:
 │ Name: MyProductionWorkload                                                                       │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
 
-→ Would you like to modify any information? [y/n] (n):
+→ Would you like to modify any information? (n):
 ```
 
 ## Step 3: Collect Alarm Contact Information
@@ -56,7 +56,7 @@ Primary incident contact serves as the initial point of contact for AWS IDR inci
 ─────────────────────────────────────────
 
 Escalation contact will be contacted if primary contact is unreachable during an incident.
-→ Would you like to use John Doe as your escalation contact as well? [y/n] (n): n
+→ Would you like to use John Doe as your escalation contact as well? (n): n
 → Escalation contact name (): Jane Smith
 → Escalation contact email (): jane.smith@company.com
 → Escalation contact phone (optional) (): +1-555-987-6543
@@ -76,7 +76,7 @@ Review and confirm the alarm contact information:
 │ Escalation Phone: +1-555-987-6543                                                                   │
 ╰─────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
-→ Would you like to modify any alarm contact information? [y/n] (n):
+→ Would you like to modify any alarm contact information? (n):
 ```
 
 ## Step 5: Select Alarm Type
@@ -161,7 +161,7 @@ To ingest APM alarms, we need the EventBridge CustomEventBus that was created as
 💡 Found eligible EventBridge event buses:
 
   • arn:aws:events:us-east-1:123456789012:event-bus/NewRelic-AWSIncidentDetectionResponse-EventBus (created: 2025-11-11)
-→ Use this event bus: arn:aws:events:us-east-1:123456789012:event-bus/NewRelic-AWSIncidentDetectionResponse-EventBus? [y/n] (y): 
+→ Would you like to use this event bus: arn:aws:events:us-east-1:123456789012:event-bus/NewRelic-AWSIncidentDetectionResponse-EventBus? (y):
 
 ✅ Event bus configured successfully
 ```
@@ -188,7 +188,7 @@ How would you like to specify tags?:
 → Enter number (1): 1
 → Tag key (Application): Owner
 → Tag value: CLI
-→ Would you like to proceed with Owner=['CLI']? [y/n] (y):
+→ Would you like to proceed with Owner=['CLI']? (y):
 
 🔍 Searching for CloudWatch alarms...
 
@@ -296,7 +296,7 @@ Step 8/12: Confirm Configuration
 Event Bus: arn:aws:events:us-east-1:xxxxxxxxxxxx:event-bus/NewRelic-AWSIncidentDetectionResponse-EventBus
 
 Alert Identifiers: test1, test2, test3
-→ Proceed with this configuration? [y/n] (y): y
+→ Would you like to proceed with this configuration? (y): y
 ```
 
 If you select 'n' (no):
@@ -315,7 +315,7 @@ The CLI validates selected alarms for noise patterns and suitability:
 Step 9/12: Validate Alarms
 
 ℹ️  Next, we'll validate these alarms for noise patterns and suitability. Validation results will be noted in your ingestion request.
-→ Proceed to validation? [y/n] (y):
+→ Would you like to proceed to validation? (y):
 
 🔍 Validating 8 alarm(s)...
 
@@ -368,7 +368,7 @@ Step 10/12: Confirm Ingestion
 │ Escalation Phone: +1-555-987-6543                                                                   │
 ╰─────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
-→ Proceed with ingesting these 8 alarm(s) into IDR? [y/n] (y):
+→ Would you like to proceed with ingesting these 8 alarm(s) into IDR? (y):
 
 Associating above contact information with 8 alarms
 
@@ -424,7 +424,7 @@ If the role is missing:
 
 ```
 ⚠️  Service Linked Role missing for IDR
-→ Would you like to create the Service Linked Role for IDR now? [y/n] (y):
+→ Would you like to create the Service Linked Role for IDR now? (y):
 
 ✅ Created Service Linked Role: AWSServiceRoleForHealth_EventProcessor
 ```

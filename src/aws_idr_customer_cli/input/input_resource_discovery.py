@@ -200,7 +200,7 @@ class InputResourceDiscovery:
                 style=STYLE_BLUE,
             )
 
-            resources = self.resource_finder_service.find_functional_resources_by_tags(
+            resources = self.resource_finder_service.find_all_resources_by_tags(
                 tags=tag_filters, regions=regions
             )
 

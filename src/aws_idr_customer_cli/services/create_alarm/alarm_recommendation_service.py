@@ -13,11 +13,20 @@ from aws_idr_customer_cli.data_accessors.apigateway_accessor import ApiGatewayAc
 from aws_idr_customer_cli.data_accessors.cloudwatch_metrics_accessor import (
     CloudWatchMetricsAccessor,
 )
+from aws_idr_customer_cli.services.create_alarm.emr_resource_processor import (
+    EmrResourceProcessor,
+)
 from aws_idr_customer_cli.services.create_alarm.lambda_edge_detection_service import (
     LambdaEdgeDetectionService,
 )
 from aws_idr_customer_cli.services.create_alarm.lambda_edge_processor import (
     LambdaEdgeProcessor,
+)
+from aws_idr_customer_cli.services.create_alarm.msk_resource_processor import (
+    MskResourceProcessor,
+)
+from aws_idr_customer_cli.services.create_alarm.opensearch_resource_processor import (
+    OpenSearchResourceProcessor,
 )
 from aws_idr_customer_cli.services.file_cache.data import ResourceArn
 from aws_idr_customer_cli.utils.constants import MetricType
@@ -46,6 +55,9 @@ class AlarmRecommendationService:
         lambda_edge_detection_service: LambdaEdgeDetectionService,
         metrics_accessor: CloudWatchMetricsAccessor,
         lambda_edge_processor: LambdaEdgeProcessor,
+        msk_resource_processor: MskResourceProcessor,
+        emr_resource_processor: EmrResourceProcessor,
+        opensearch_resource_processor: OpenSearchResourceProcessor,
         ui: InteractiveUI,
     ) -> None:
         """
@@ -77,6 +89,8 @@ class AlarmRecommendationService:
             logger: CLI logger instance
             namespace_validator: Validator for metric namespace and existence checks
             lambda_edge_detection_service: Service for detecting Lambda@Edge functions
+            msk_resource_processor: Processor for MSK-specific alarm logic
+            opensearch_resource_processor: Processor for OpenSearch-specific logic
             ui: Interactive UI for customer-facing messages
         """
         self.logger = logger
@@ -85,6 +99,9 @@ class AlarmRecommendationService:
         self.lambda_edge_detection_service = lambda_edge_detection_service
         self.metrics_accessor = metrics_accessor
         self.lambda_edge_processor = lambda_edge_processor
+        self.msk_resource_processor = msk_resource_processor
+        self.emr_resource_processor = emr_resource_processor
+        self.opensearch_resource_processor = opensearch_resource_processor
         self.ui = ui
         self.TEMPLATES_PACKAGE = (
             "aws_idr_customer_cli.utils.create_alarm.idr_alarm_templates"
@@ -167,11 +184,35 @@ class AlarmRecommendationService:
 
         # Check if this is a Lambda@Edge function
         if (
-            service_type == "lambda"
+            service_type == AwsServices.LAMBDA.value
             and self.lambda_edge_detection_service.is_lambda_edge_function(resource.arn)
         ):
             return self._process_lambda_edge_resource(
                 resource, suppress_warnings, cached_regions
+            )
+
+        if service_type == AwsServices.MSK.value:
+            templates = self.get_templates_for_service(AwsServices.MSK.value)
+            return cast(
+                List[Dict[str, Any]],
+                self.msk_resource_processor.process_msk_resource(
+                    resource=resource,
+                    templates=templates,
+                    create_alarm_config_fn=self._create_alarm_configuration,
+                    suppress_warnings=suppress_warnings,
+                ),
+            )
+
+        if service_type == AwsServices.EMR.value:
+            templates = self.get_templates_for_service(AwsServices.EMR.value)
+            return cast(
+                List[Dict[str, Any]],
+                self.emr_resource_processor.process_emr_resource(
+                    resource=resource,
+                    templates=templates,
+                    create_alarm_config_fn=self._create_alarm_configuration,
+                    suppress_warnings=suppress_warnings,
+                ),
             )
 
         templates = self.get_templates_for_service(service_type)
@@ -179,7 +220,13 @@ class AlarmRecommendationService:
             self.logger.warning(f"No templates found for service: {service_type}")
             return []
 
-        if service_type in ["ecs", "eks"]:
+        # Handle OpenSearch special processing for dynamic threshold calculation
+        if service_type == AwsServices.OPENSEARCH.value:
+            templates = self.opensearch_resource_processor.enrich_templates(
+                templates, resource
+            )
+
+        if service_type in [AwsServices.ECS.value, AwsServices.EKS.value]:
 
             available_ci_namespaces = (
                 self.namespace_validator.validate_service_namespaces(
@@ -232,7 +279,7 @@ class AlarmRecommendationService:
         Returns:
             List of alarm configurations (one set per region with metrics)
         """
-        templates = self.get_templates_for_service("lambda")
+        templates = self.get_templates_for_service(AwsServices.LAMBDA.value)
         return cast(
             List[Dict[str, Any]],
             self.lambda_edge_processor.process_lambda_edge_resource(
@@ -249,6 +296,7 @@ class AlarmRecommendationService:
         try:
             parsed_arn = arnparse(arn)
             service_name = parsed_arn.service.lower()
+            resource = parsed_arn.resource or ""
 
             # Special case: EC2 sub-resources use resource_type to determine service
             if service_name == "ec2" and hasattr(parsed_arn, "resource_type"):
@@ -260,6 +308,41 @@ class AlarmRecommendationService:
                 else:
                     # Regular EC2 instance
                     mapped_service = AwsServices.EC2.value
+            # Special case: API Gateway - differentiate REST, HTTP, and WebSocket APIs
+            elif service_name == "apigateway":
+                if resource.startswith("/apis/"):
+                    # HTTP or WebSocket API - need to call apigatewayv2 to determine type
+                    api_id = (
+                        resource.split("/")[2] if len(resource.split("/")) >= 3 else ""
+                    )
+                    if api_id:
+                        api_details = self.apigateway_accessor.get_http_api_details(
+                            api_id, parsed_arn.region
+                        )
+                        if api_details:
+                            protocol_type = api_details.get("protocol_type", "")
+                            if protocol_type == "HTTP":
+                                mapped_service = AwsServices.APIGATEWAY_HTTP.value
+                            elif protocol_type == "WEBSOCKET":
+                                mapped_service = AwsServices.APIGATEWAY_WEBSOCKET.value
+                            else:
+                                self.logger.warning(
+                                    f"Unknown API Gateway protocol type: {protocol_type}"
+                                )
+                                return None
+                        else:
+                            self.logger.warning(
+                                f"Could not determine API type for {arn}"
+                            )
+                            return None
+                    else:
+                        return None
+                elif resource.startswith("/restapis/"):
+                    # REST API
+                    mapped_service = AwsServices.APIGATEWAY.value
+                else:
+                    # Default to REST API for backward compatibility
+                    mapped_service = AwsServices.APIGATEWAY.value
             else:
                 # Map ARN service name to internal service enum value
                 mapped_name = ServiceConfigManager.map_arn_service_name(service_name)
@@ -639,6 +722,11 @@ class AlarmRecommendationService:
 
         identifiers: Dict[str, str] = {}
         self._apply_extraction_rules(parsed_arn, extraction_rules, identifiers)
+
+        # Add account ID as client_id for services that need it in dimensions
+        if hasattr(parsed_arn, "account_id") and parsed_arn.account_id:
+            identifiers["client_id"] = parsed_arn.account_id
+
         return identifiers
 
     def _apply_extraction_rules(
@@ -669,6 +757,20 @@ class AlarmRecommendationService:
                     identifiers["api_name"] = api_name if api_name else api_id
                 if len(parts) >= 5 and "stage" in extraction_rules:
                     identifiers[extraction_rules["stage"]] = parts[4]
+            elif resource.startswith("/apis/"):
+                # HTTP or WebSocket API
+                parts = resource.split("/")
+                if len(parts) >= 3 and "api_id" in extraction_rules:
+                    api_id = parts[2]
+                    identifiers[extraction_rules["api_id"]] = api_id
+                    # Resolve API details from API Gateway V2 service
+                    api_details = self.apigateway_accessor.get_http_api_details(
+                        api_id, parsed_arn.region
+                    )
+                    if api_details:
+                        identifiers["api_name"] = api_details.get("name", api_id)
+                    else:
+                        identifiers["api_name"] = api_id
 
         elif service == "elasticloadbalancing":
             if hasattr(parsed_arn, "resource_type") and parsed_arn.resource_type:
@@ -687,6 +789,13 @@ class AlarmRecommendationService:
                     else:
                         # Already in correct format: app/my-alb/id or my-clb
                         identifiers[extraction_rules["loadbalancer"]] = resource
+        elif service == "kafka":
+            # MSK ARN resource after arnparse: "cluster-name/cluster-uuid"
+            # (arnparse strips "cluster/" prefix from the full resource path)
+            # Extract cluster name (first segment before UUID)
+            if "cluster" in extraction_rules and resource:
+                cluster_name = resource.split("/")[0]
+                identifiers[extraction_rules["cluster"]] = cluster_name
         elif service == "medialive":
             if (
                 hasattr(parsed_arn, "resource_type")

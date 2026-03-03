@@ -28,6 +28,7 @@ from aws_idr_customer_cli.utils.alarm_contact_collection import (
 from aws_idr_customer_cli.utils.constants import CommandType
 from aws_idr_customer_cli.utils.resource_discovery_utils import (
     discover_resources_by_tags,
+    exclude_non_monitorable_resources,
     select_alarms,
     select_resources,
 )
@@ -322,6 +323,9 @@ class AlarmCreationSession(InteractiveSession):
         # Extract resources and tags from tuple result
         resources, tag_filters = result
 
+        # Exclude resources that are not eligible for monitoring
+        resources = exclude_non_monitorable_resources(resources)
+
         # Store resources and tags in submission
         if not self.submission:
             raise RuntimeError("No submission available")
@@ -369,14 +373,23 @@ class AlarmCreationSession(InteractiveSession):
         """Prepare alarm information from discovered resources."""
         resources = self.submission.resource_arns_selected
 
-        if not resources:
+        # Exclude resources that are not eligible for monitoring
+        filtered_resources = exclude_non_monitorable_resources(resources)
+
+        self.ui.display_info(
+            message="ℹ️  Resources not eligible for monitoring like IAM roles, security "
+            "groups, and subnets are excluded",
+            style="dim",
+        )
+
+        if not filtered_resources:
             self.ui.display_warning(
                 "No resources available for alarm creation. Returning to resource selection."
             )
             return {ACTION_KEY: ACTION_BACK}
 
         alarm_recommendations = self.alarm_service.generate_alarm_recommendations(
-            resources
+            filtered_resources
         )
 
         if not alarm_recommendations:
@@ -423,7 +436,7 @@ class AlarmCreationSession(InteractiveSession):
         )
 
         confirmed = self.ui.prompt_confirm(
-            f"Are you ready to proceed with creating these {alarms_to_create_count} alarms?"
+            f"Would you like to proceed with creating these {alarms_to_create_count} alarms?"
         )
 
         if not confirmed:
@@ -475,8 +488,8 @@ class AlarmCreationSession(InteractiveSession):
         display_alarm_contact_summary(self.ui, self.submission)
 
         confirmed = self.ui.prompt_confirm(
-            f'Proceed with onboarding {"this" if total_alarms <= 1 else "these"} '
-            f"{total_alarms} {alarm_word} to IDR? [y/n] (y):"
+            f'Would you like to proceed with ingesting {"this" if total_alarms <= 1 else "these"} '
+            f"{total_alarms} {alarm_word} into IDR?"
         )
 
         if confirmed:

@@ -25,13 +25,17 @@ You run the IDR CLI in the CloudShell. We also currently support Linux, Ubuntu, 
 12. AmazonKeyspacesReadOnlyAccess (recommended if onboarding Keyspaces)
 13. AmazonS3ReadOnlyAccess (recommended if onboarding S3 Buckets)
 14. AmazonRDSReadOnlyAccess (recommended if onboarding RDS Databases)
+15. AmazonMSKReadOnlyAccess (recommended if onboarding MSK clusters)
+16. AmazonOpenSearchServiceReadOnlyAccess (recommended if onboarding OpenSearch domains)
+17. AmazonEMRReadOnlyAccess (recommended if onboarding EMR clusters)
 ```
 
-**Note: Conditional Metric Validation Permissions (11-14)**
+**Note: Conditional Metric Validation and Resource-Specific Permissions (11-17)**
 
-For improved alarm creation accuracy, the CLI can validate whether conditional metrics (like DLQ metrics, replica lag, etc.) are available for your resources. Additionally, for Lambda functions, the CLI can detect Lambda@Edge deployments and create region-specific alarms. These permissions are recommended if you plan on onboarding the following resources:
+For improved alarm creation accuracy, the CLI can validate whether conditional metrics (like DLQ metrics, replica lag, etc.) are available for your resources. Additionally, for Lambda functions, the CLI can detect Lambda@Edge deployments and create region-specific alarms. For MSK, OpenSearch, and EMR, the CLI queries resource configurations to create per-broker alarms, calculate dynamic thresholds, and filter non-monitorable clusters. These permissions are recommended if you plan on onboarding the following resources:
 
 ```
+apigatewayv2:GetApi                # Determine HTTP vs WebSocket API type for correct alarms
 lambda:GetFunctionConfiguration    # Validate Lambda DLQ configuration
 sns:ListSubscriptionsByTopic       # Validate SNS subscription DLQ/filter policies
 sns:GetSubscriptionAttributes      # Validate SNS subscription attributes
@@ -43,13 +47,26 @@ keyspaces:GetKeyspace              # Validate Keyspaces multi-region replication
 cloudfront:ListDistributions       # Detect Lambda@Edge associations with CloudFront
 cloudfront:GetDistribution         # Retrieve Lambda@Edge configuration from distributions
 cloudwatch:GetMetricData           # Scan regions for Lambda@Edge metrics
+kafka:ListNodes                    # Discover MSK broker IDs for per-broker alarms
+kafka:DescribeClusterV2            # Detect MSK Serverless clusters and validate IAM auth/monitoring level
+es:DescribeDomain                  # Get OpenSearch domain EBS config for dynamic FreeStorageSpace threshold
+elasticmapreduce:DescribeCluster   # Detect terminated/transient EMR clusters to skip alarm creation
 ```
 
 Without these permissions, the CLI will:
 - Skip conditional alarms for resources if there is no data for corresponding metrics in the last 14 days
+- **API Gateway HTTP/WebSocket behavior:**
+  - Without `apigatewayv2:GetApi`: Cannot distinguish between HTTP and WebSocket APIs, may apply incorrect alarm templates or skip API-type-specific alarms
 - **Lambda@Edge behavior:**
   - Without `cloudfront:ListDistributions` / `cloudfront:GetDistribution`: Treat Lambda@Edge functions as regular Lambda functions (creating alarms only in us-east-1 instead of all regions where the function executes)
   - Without `cloudwatch:GetMetricData`: Skip Lambda@Edge regional alarm creation entirely (cannot determine which regions have metrics)
+- **MSK behavior:**
+  - Without `kafka:ListNodes`: Cannot create per-broker alarms; only cluster-level alarms will be created
+  - Without `kafka:DescribeClusterV2`: Cannot detect Serverless clusters (alarms may fail) or validate IAM auth for conditional metric `IAMTooManyConnections`
+- **OpenSearch behavior:**
+  - Without `es:DescribeDomain`: FreeStorageSpace alarm will be skipped (cannot calculate dynamic threshold based on EBS volume size)
+- **EMR behavior:**
+  - Without `elasticmapreduce:DescribeCluster`: Alarms may be created for terminated or transient (AutoTerminate) clusters that will never fire
 
 ## Option 2: Custom Policy (Least Privilege)
 

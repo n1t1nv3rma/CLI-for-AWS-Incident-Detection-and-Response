@@ -1,12 +1,13 @@
 """APM configuration utility functions."""
 
-from typing import List, cast
+from typing import List, Optional, cast
 
 from aws_idr_customer_cli.utils.apm.apm_constants import (
     APM_PROVIDERS,
     EVENTBRIDGE_INSTRUCTIONS,
     FALLBACK_INSTRUCTION,
     INTEGRATION_PARAMETERS,
+    PROVIDER_TEMPLATE_FILES,
     SNS_INSTRUCTIONS,
     TEMPLATE_FILES,
     WEBHOOK_INSTRUCTIONS,
@@ -14,6 +15,14 @@ from aws_idr_customer_cli.utils.apm.apm_constants import (
     ApmProviderConfig,
     IntegrationType,
 )
+
+
+def resolve_provider_enum(apm_provider: str) -> Optional[ApmProvider]:
+    """Resolve a provider name string to its ApmProvider enum, or None."""
+    for provider in ApmProvider:
+        if provider.value == apm_provider:
+            return provider
+    return None
 
 
 def get_provider_config(apm_provider: str) -> ApmProviderConfig:
@@ -29,12 +38,7 @@ def get_provider_config(apm_provider: str) -> ApmProviderConfig:
     Raises:
         ValueError: If provider is not supported
     """
-    # Find the provider enum that matches the string value
-    provider_enum = None
-    for provider in ApmProvider:
-        if provider.value == apm_provider:
-            provider_enum = provider
-            break
+    provider_enum = resolve_provider_enum(apm_provider)
 
     if provider_enum is None or provider_enum not in APM_PROVIDERS:
         supported = ", ".join([p.value for p in ApmProvider])
@@ -59,6 +63,10 @@ def get_default_incident_path(apm_provider: str) -> str:
 def get_template_file(apm_provider: str) -> str:
     """Get CloudFormation template file for APM provider."""
     config = get_provider_config(apm_provider)
+    # Check provider-level override first
+    provider_enum = resolve_provider_enum(apm_provider)
+    if provider_enum and provider_enum in PROVIDER_TEMPLATE_FILES:
+        return str(PROVIDER_TEMPLATE_FILES[provider_enum])
     return str(TEMPLATE_FILES[config.integration_type])
 
 
