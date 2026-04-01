@@ -137,7 +137,7 @@ templates:
     service: "Kinesis"
     alarm_type: "RELIABILITY"
     metric_type: "NATIVE"
-    description: "Monitors read throttling to detect capacity issues"
+    description: "Monitors write (put) throttling to detect capacity issues"
     configuration:
       AlarmName: "IDR-Kinesis-PutRecordsThrottledRecords-${stream_name}"
       MetricName: "PutRecords.ThrottledRecords"

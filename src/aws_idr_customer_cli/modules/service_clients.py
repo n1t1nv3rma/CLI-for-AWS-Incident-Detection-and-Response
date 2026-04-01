@@ -36,6 +36,9 @@ from aws_idr_customer_cli.services.create_alarm.alarm_recommendation_service imp
     AlarmRecommendationService,
 )
 from aws_idr_customer_cli.services.create_alarm.alarm_service import AlarmService
+from aws_idr_customer_cli.services.create_alarm.dynamodb_resource_processor import (
+    DynamoDbResourceProcessor,
+)
 from aws_idr_customer_cli.services.create_alarm.emr_resource_processor import (
     EmrResourceProcessor,
 )
@@ -213,6 +216,18 @@ class ServiceClientsModule(injector.Module):
 
     @injector.singleton
     @injector.provider
+    def provide_dynamodb_resource_processor(
+        self,
+        logger: CliLogger,
+        dynamodb_accessor: DynamoDbAccessor,
+    ) -> DynamoDbResourceProcessor:
+        return DynamoDbResourceProcessor(
+            logger=logger,
+            dynamodb_accessor=dynamodb_accessor,
+        )
+
+    @injector.singleton
+    @injector.provider
     def provide_alarm_recommendation_service(
         self,
         logger: CliLogger,
@@ -224,6 +239,7 @@ class ServiceClientsModule(injector.Module):
         msk_resource_processor: MskResourceProcessor,
         emr_resource_processor: EmrResourceProcessor,
         opensearch_resource_processor: OpenSearchResourceProcessor,
+        dynamodb_resource_processor: DynamoDbResourceProcessor,
         ui: InteractiveUI,
     ) -> AlarmRecommendationService:
         return AlarmRecommendationService(
@@ -236,6 +252,7 @@ class ServiceClientsModule(injector.Module):
             msk_resource_processor=msk_resource_processor,
             emr_resource_processor=emr_resource_processor,
             opensearch_resource_processor=opensearch_resource_processor,
+            dynamodb_resource_processor=dynamodb_resource_processor,
             ui=ui,
         )
 

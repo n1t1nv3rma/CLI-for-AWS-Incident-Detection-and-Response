@@ -11,7 +11,7 @@ templates:
       AlarmDescription: "Monitors read throttle events to detect capacity issues"
       MetricName: "ReadThrottleEvents"
       Namespace: "AWS/DynamoDB"
-      Statistic: "Average"
+      Statistic: "Sum"
       Period: 60
       EvaluationPeriods: 5
       DatapointsToAlarm: 5
@@ -44,7 +44,7 @@ templates:
       AlarmName: "IDR-DynamoDB-WriteThrottleEvents-${table_name}"
       MetricName: "WriteThrottleEvents"
       Namespace: "AWS/DynamoDB"
-      Statistic: "Average"
+      Statistic: "Sum"
       Period: 60
       EvaluationPeriods: 5
       DatapointsToAlarm: 5
@@ -107,20 +107,24 @@ templates:
     metric_type: "CONDITIONAL"
     description: "Monitors replication latency for global tables"
     configuration:
-      AlarmName: "IDR-DynamoDB-ReplicationLatency-${table_name}"
+      AlarmName: "IDR-DynamoDB-ReplicationLatency-${table_name}-${receiving_region}"
       MetricName: "ReplicationLatency"
       Namespace: "AWS/DynamoDB"
       Statistic: "Average"
       Period: 60
       EvaluationPeriods: 5
       DatapointsToAlarm: 5
-      Threshold: 1.0
+      Threshold: 1000.0
       ComparisonOperator: "GreaterThanOrEqualToThreshold"
       TreatMissingData: "notBreaching"
       Dimensions: [
         {
           Name: "TableName",
           Value: "${table_name}"
+        },
+        {
+          Name: "ReceivingRegion",
+          Value: "${receiving_region}"
         }
       ]
     Tags: [

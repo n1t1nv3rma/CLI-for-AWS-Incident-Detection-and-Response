@@ -249,7 +249,7 @@ Enter comma-separated alert identifiers that your APM sends
 1. A support case is created with your update request
 2. The case is routed to the IDR team via CTI: Technical support | Incident Detection and Response | Workload Change Request
 3. For contacts updates: Contact information is included in the support case body
-4. For alarm updates: A JSON attachment is included for processing through the Harmony tool
+4. For alarm updates: A JSON attachment is included
 5. The IDR team processes your request and updates your workload configuration
 
 ## See Also

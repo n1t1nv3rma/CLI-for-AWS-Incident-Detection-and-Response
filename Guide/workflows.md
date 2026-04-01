@@ -168,7 +168,7 @@ awsidr update-workload
 ### Alarms Update
 - Add CloudWatch alarms (by tags, file, or manual ARN entry)
 - Add APM alarms (EventBridge ARN + alert identifiers)
-- Alarm data is attached as JSON for Harmony tool processing
+- Alarm data is attached as JSON
 
 **Steps:**
 

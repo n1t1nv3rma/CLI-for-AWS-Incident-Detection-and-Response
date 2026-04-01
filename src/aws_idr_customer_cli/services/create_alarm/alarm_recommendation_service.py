@@ -13,6 +13,9 @@ from aws_idr_customer_cli.data_accessors.apigateway_accessor import ApiGatewayAc
 from aws_idr_customer_cli.data_accessors.cloudwatch_metrics_accessor import (
     CloudWatchMetricsAccessor,
 )
+from aws_idr_customer_cli.services.create_alarm.dynamodb_resource_processor import (
+    DynamoDbResourceProcessor,
+)
 from aws_idr_customer_cli.services.create_alarm.emr_resource_processor import (
     EmrResourceProcessor,
 )
@@ -58,6 +61,7 @@ class AlarmRecommendationService:
         msk_resource_processor: MskResourceProcessor,
         emr_resource_processor: EmrResourceProcessor,
         opensearch_resource_processor: OpenSearchResourceProcessor,
+        dynamodb_resource_processor: DynamoDbResourceProcessor,
         ui: InteractiveUI,
     ) -> None:
         """
@@ -102,6 +106,7 @@ class AlarmRecommendationService:
         self.msk_resource_processor = msk_resource_processor
         self.emr_resource_processor = emr_resource_processor
         self.opensearch_resource_processor = opensearch_resource_processor
+        self.dynamodb_resource_processor = dynamodb_resource_processor
         self.ui = ui
         self.TEMPLATES_PACKAGE = (
             "aws_idr_customer_cli.utils.create_alarm.idr_alarm_templates"
@@ -208,6 +213,18 @@ class AlarmRecommendationService:
             return cast(
                 List[Dict[str, Any]],
                 self.emr_resource_processor.process_emr_resource(
+                    resource=resource,
+                    templates=templates,
+                    create_alarm_config_fn=self._create_alarm_configuration,
+                    suppress_warnings=suppress_warnings,
+                ),
+            )
+
+        if service_type == AwsServices.DYNAMODB.value:
+            templates = self.get_templates_for_service(AwsServices.DYNAMODB.value)
+            return cast(
+                List[Dict[str, Any]],
+                self.dynamodb_resource_processor.process_dynamodb_resource(
                     resource=resource,
                     templates=templates,
                     create_alarm_config_fn=self._create_alarm_configuration,
