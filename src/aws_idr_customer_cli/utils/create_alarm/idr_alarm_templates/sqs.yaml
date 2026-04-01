@@ -49,7 +49,7 @@ templates:
       DatapointsToAlarm: 5
       Threshold: 900.0  # 15 minutes
       ComparisonOperator: "GreaterThanOrEqualToThreshold"
-      TreatMissingData: "breaching"
+      TreatMissingData: "notBreaching"
       Dimensions: [
         {
           Name: "QueueName",

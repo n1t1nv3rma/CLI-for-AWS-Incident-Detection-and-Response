@@ -515,8 +515,8 @@ templates:
       Period: 60
       EvaluationPeriods: 5
       DatapointsToAlarm: 5
-      Threshold: 1.0
-      ComparisonOperator: "GreaterThanThreshold"
+      Threshold: 0.8
+      ComparisonOperator: "LessThanThreshold"
       TreatMissingData: "notBreaching"
       Dimensions: [
             {

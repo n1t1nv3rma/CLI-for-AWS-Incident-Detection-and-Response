@@ -53,7 +53,6 @@ templates:
           Label: "5XX Error Rate"
         }
       ]
-      Period: 60
       EvaluationPeriods: 5
       DatapointsToAlarm: 5
       Threshold: 5.0
