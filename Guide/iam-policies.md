@@ -4,9 +4,79 @@ This section helps you ensure that the right IAM policies are in place so you ca
 
 ## Overview
 
-The IDR CLI requires specific IAM permissions depending on which commands you plan to execute. You can choose between using AWS managed policies for quick setup or custom policies for least privilege access.
+The IDR CLI requires specific IAM permissions depending on which commands you plan to execute. You can choose between custom policies for least privilege access or AWS managed policies for quick setup.
 
-## Option 1: Use Managed Policies
+### Choosing an Approach
+
+| | Custom Policy (Option 1) | Managed Policies (Option 2) |
+|---|---|---|
+| **Best for** | Production, enterprise environments | Quick start, POC, evaluation |
+| **Permissions** | Least privilege — only what the CLI needs | Broad — includes permissions beyond CLI usage |
+| **Security posture** | Scoped to specific IDR CLI actions and resources | Multiple `FullAccess` policies (IAM, Lambda, CloudFormation, etc.) |
+
+
+## Option 1: Custom Policy (Least Privilege) — Recommended for Production
+
+You can define customized IAM policies for least privileged access. The IDR CLI requires specific IAM permissions depending on which commands you plan to execute.
+
+### Policy 1: General CLI Operations
+
+**Use this policy for:**
+- `awsidr register-workload` - Workload registration
+- `awsidr create-alarms` - CloudWatch alarm creation
+- `awsidr ingest-alarms` - CloudWatch alarm ingestion
+
+[View Policy 1: General CLI Operations](iam-policies/general-cli.json)
+
+### Policy 2: APM Integration - SaaS (EventBridge)
+
+**Use this policy for:**
+- `awsidr setup-apm` with **Datadog**
+- `awsidr setup-apm` with **New Relic**
+- `awsidr setup-apm` with **Splunk Observability Cloud**
+
+**Resources created:**
+- Custom EventBus
+- EventBridge Rule
+- Transform Lambda Function
+- IAM Execution Role
+- CloudWatch Log Groups
+
+[View Policy 2: APM SaaS Integration](iam-policies/apm-saas.json)
+
+### Policy 3: APM Integration - SNS
+
+**Use this policy for:**
+- `awsidr setup-apm` with **Grafana Cloud**
+
+**Resources created:**
+- Custom EventBus
+- SNS Topic Subscription
+- Transform Lambda Function
+- IAM Execution Role
+- CloudWatch Log Groups
+
+[View Policy 3: APM SNS Integration](iam-policies/apm-sns.json)
+
+### Policy 4: APM Integration - Webhook (Non-SaaS)
+
+**Use this policy for:**
+- `awsidr setup-apm` with **Dynatrace**
+- `awsidr setup-apm` with any **custom webhook-based APM**
+
+**Resources created:**
+- API Gateway REST API with HTTPS endpoint
+- Lambda Authorizer Function
+- Transform Lambda Function
+- Secrets Manager Secret (for auth token)
+- Custom EventBus
+- IAM Execution Roles
+- API Gateway Usage Plan
+- CloudWatch Log Groups
+
+[View Policy 4: APM Webhook Integration](iam-policies/apm-webhook.json)
+
+## Option 2: Managed Policies — Quick Start
 
 You run the IDR CLI in the CloudShell. We also currently support Linux, Ubuntu, MacOS and Windows if you want to run the CLI in another environment. Actions you perform with the CLI require IAM permissions depending on the workflow you use. You can use the following managed AWS IAM policies in general: 
 
@@ -67,67 +137,6 @@ Without these permissions, the CLI will:
   - Without `es:DescribeDomain`: FreeStorageSpace alarm will be skipped (cannot calculate dynamic threshold based on EBS volume size)
 - **EMR behavior:**
   - Without `elasticmapreduce:DescribeCluster`: Alarms may be created for terminated or transient (AutoTerminate) clusters that will never fire
-
-## Option 2: Custom Policy (Least Privilege)
-
-You can define customized IAM policies for least privileged access. The IDR CLI requires specific IAM permissions depending on which commands you plan to execute.
-
-### Policy 1: General CLI Operations
-
-**Use this policy for:**
-- `awsidr register-workload` - Workload registration
-- `awsidr create-alarms` - CloudWatch alarm creation
-- `awsidr ingest-alarms` - CloudWatch alarm ingestion
-
-[View Policy 1: General CLI Operations](iam-policies/general-cli.json)
-
-### Policy 2: APM Integration - SaaS (EventBridge)
-
-**Use this policy for:**
-- `awsidr setup-apm` with **Datadog**
-- `awsidr setup-apm` with **New Relic**
-- `awsidr setup-apm` with **Splunk Observability Cloud**
-
-**Resources created:**
-- Custom EventBus
-- EventBridge Rule
-- Transform Lambda Function
-- IAM Execution Role
-- CloudWatch Log Groups
-
-[View Policy 2: APM SaaS Integration](iam-policies/apm-saas.json)
-
-### Policy 3: APM Integration - SNS
-
-**Use this policy for:**
-- `awsidr setup-apm` with **Grafana Cloud**
-
-**Resources created:**
-- Custom EventBus
-- SNS Topic Subscription
-- Transform Lambda Function
-- IAM Execution Role
-- CloudWatch Log Groups
-
-[View Policy 3: APM SNS Integration](iam-policies/apm-sns.json)
-
-### Policy 4: APM Integration - Webhook (Non-SaaS)
-
-**Use this policy for:**
-- `awsidr setup-apm` with **Dynatrace**
-- `awsidr setup-apm` with any **custom webhook-based APM**
-
-**Resources created:**
-- API Gateway REST API with HTTPS endpoint
-- Lambda Authorizer Function
-- Transform Lambda Function
-- Secrets Manager Secret (for auth token)
-- Custom EventBus
-- IAM Execution Roles
-- API Gateway Usage Plan
-- CloudWatch Log Groups
-
-[View Policy 4: APM Webhook Integration](iam-policies/apm-webhook.json)
 
 ## Policy Selection Guide
 
