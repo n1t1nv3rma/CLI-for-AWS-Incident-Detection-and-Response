@@ -274,9 +274,7 @@ DEFAULT_INCIDENT_PATHS = {
     ApmProvider.SPLUNK: IncidentPath(path='event["detail"]["ruleName"]'),
     ApmProvider.DYNATRACE: IncidentPath(path='raw_json["detail"]["ProblemTitle"]'),
     ApmProvider.GRAFANA_OSS: IncidentPath(path='alert["labels"]["alertname"]'),
-    ApmProvider.PAGERDUTY: IncidentPath(
-        path='event["detail"]["incident"]["title"]'
-    ),
+    ApmProvider.PAGERDUTY: IncidentPath(path='event["detail"]["incident"]["title"]'),
 }
 
 # Template file mapping based on integration type
